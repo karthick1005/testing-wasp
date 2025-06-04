@@ -116,7 +116,7 @@ jobs:
           username: ${{ secrets.GCP_VM_USERNAME }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
-           cd wasptesting/
+           cd  testing/
             git pull origin main
             cd app/
             
