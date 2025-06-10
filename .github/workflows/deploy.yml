@@ -68,15 +68,6 @@ jobs:
         shell: bash
         run: wasp build
 
-      - name: Dedupe npm packages
-        run: npm dedupe
-
-      - name: Install dependencies in web-app
-        run: |
-          cd ./.wasp/build/web-app
-          rm -rf node_modules package-lock.json
-          npm install
-
       - name: (client) Build
         run: |
           cd ./.wasp/build/web-app
