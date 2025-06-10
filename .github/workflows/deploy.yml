@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WASP_VERSION: "0.16.4"
+  WASP_VERSION: "0.16.2"
   # Put your server app name here
   SERVER_APP_NAME: "pokemon-server"
   # After you know the server URL, put the URL here
@@ -94,16 +94,10 @@ jobs:
       #     cd ./.wasp/build/web-app
       #     npm dedupe
 
-      # - name: (client) Build
-      #   run: |
-      #     cd ./.wasp/build/web-app
-      #     # Remove previous jq patching attempts as they caused errors.
-      #     # We need to see the `tsconfig.json` content first to apply the correct fix.
-      #     # For example, if it's not valid JSON, jq won't work.
-      #     # The `TS6053: File '@tsconfig/vite-react/tsconfig.json' not found.` error
-      #     # might indicate a missing devDependency in the generated package.json,
-      #     # or a path issue.
-      #     REACT_APP_API_URL=${{ env.SERVER_APP_URL }} npm run build
+      - name: (client) Build
+        run: |
+          cd ./.wasp/build/web-app
+          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} npm run build
 
       - name: (client) Prepare the Dockerfile
         shell: bash
