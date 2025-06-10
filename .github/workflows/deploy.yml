@@ -68,8 +68,16 @@ jobs:
         shell: bash
         run: wasp build
 
+      - name: Dedupe npm packages
+        run: npm dedupe
+
+      - name: Install dependencies in web-app
+        run: |
+          cd ./.wasp/build/web-app
+          rm -rf node_modules package-lock.json
+          npm install
+
       - name: (client) Build
-        shell: bash
         run: |
           cd ./.wasp/build/web-app
           REACT_APP_API_URL=${{ env.SERVER_APP_URL }} npm run build
