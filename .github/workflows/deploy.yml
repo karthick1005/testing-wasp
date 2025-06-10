@@ -33,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
 
     # REMOVE this whole block if your app is not in the `app` folder
-    defaults:
-      run:
-        working-directory: ./app
+    # defaults:
+    #   run:
+    #     working-directory: ./app
 
     steps:
       - name: Checkout repository
