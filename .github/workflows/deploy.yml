@@ -15,7 +15,7 @@ env:
   # Put your server app name here
   SERVER_APP_NAME: "pokemon-server"
   # After you know the server URL, put the URL here
-  SERVER_APP_URL: "https://api.<your-domain>"
+  SERVER_APP_URL: "http://api.34.136.254.179.sslip.io"
   # Put your client app name here
   CLIENT_APP_NAME: "pokemon-client"
   DOCKER_REGISTRY: "ghcr.io"
