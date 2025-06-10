@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WASP_VERSION: "0.16.4"
+  WASP_VERSION: "0.15.1"
   # Put your server app name here
   SERVER_APP_NAME: "pokemon-server"
   # After you know the server URL, put the URL here
