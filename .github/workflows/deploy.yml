@@ -77,20 +77,24 @@ jobs:
         shell: bash
         run: wasp build
 
-      # --- REMOVED STEPS ---
-      # The following steps are removed because the `npm install` and `npm dedupe`
-      # should now happen at the root level, and Wasp's build process should
-      # correctly utilize those dependencies.
-      #
-      # - name: Dedupe npm packages
-      #   run: npm dedupe
-      #
-      # - name: Install dependencies in web-app
-      #   run: |
-      #     cd ./.wasp/build/web-app
-      #     rm -rf node_modules package-lock.json
-      #     npm install
-      # --- END REMOVED STEPS ---
+      # --- NEW AGGRESSIVE CLEANUP & LINKING STEP ---
+      - name: (client) Remove nested node_modules and try to link
+        run: |
+          CLIENT_BUILD_PATH="./.wasp/build/web-app"
+          if [ -d "$CLIENT_BUILD_PATH/node_modules" ]; then
+            echo "Removing nested node_modules in client build directory..."
+            rm -rf "$CLIENT_BUILD_PATH/node_modules"
+          fi
+          # Attempt to create a symlink to the root node_modules
+          # This might not work perfectly with all build tools or OSs,
+          # but it's worth a try.
+          # Adjust 'SOURCE_NODE_MODULES' to the correct relative path to your main node_modules
+          SOURCE_NODE_MODULES="../../../../node_modules" # Assuming app is one level down from root
+          echo "Attempting to symlink root node_modules to client build directory..."
+          ln -s "$SOURCE_NODE_MODULES" "$CLIENT_BUILD_PATH/node_modules" || echo "Symlink failed, proceeding without it."
+        working-directory: ./app # Ensure this runs from your app directory
+      # --- END NEW AGGRESSIVE CLEANUP & LINKING STEP ---
+
 
       - name: (client) Build
         # This step builds the client part after Wasp has prepared the build directory.
