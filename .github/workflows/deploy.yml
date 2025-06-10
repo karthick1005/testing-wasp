@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+  workflow_dispatch:
 
 # This will make sure that only one deployment is running at a time
 concurrency:
