@@ -3,8 +3,8 @@ import { type DailyStatsJob } from 'wasp/server/jobs';
 import Stripe from 'stripe';
 import { stripe } from '../payment/stripe/stripeClient';
 import { listOrders } from '@lemonsqueezy/lemonsqueezy.js';
-import { getDailyPageViews, getSources } from './providers/plausibleAnalyticsUtils';
-// import { getDailyPageViews, getSources } from './providers/googleAnalyticsUtils';
+// import { getDailyPageViews, getSources } from './providers/plausibleAnalyticsUtils';
+import { getDailyPageViews, getSources } from './providers/googleAnalyticsUtils';
 import { paymentProcessor } from '../payment/paymentProcessor';
 import { SubscriptionStatus } from '../payment/plans';
 
