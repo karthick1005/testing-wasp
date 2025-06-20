@@ -97,7 +97,7 @@ jobs:
       - name: (client) Build
         run: |
           cd ./.wasp/build/web-app
-          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} npm run build
+          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
 
       - name: (client) Prepare the Dockerfile
         shell: bash
