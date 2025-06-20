@@ -57,37 +57,27 @@ const getConfig = () => {
           ga: {
             label: 'Google Analytics',
             onAccept: () => {
-  try {
-    console.log('GA ID:', import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID);
-    const GA_ANALYTICS_ID = import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID;
-    if (!GA_ANALYTICS_ID?.length) {
-      throw new Error('Google Analytics ID is missing');
-    }
+              try {
+                const GA_ANALYTICS_ID = import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID;
+                if (!GA_ANALYTICS_ID.length) {
+                  throw new Error('Google Analytics ID is missing');
+                }
+                window.dataLayer = window.dataLayer || [];
+                function gtag(..._args: unknown[]) {
+                  (window.dataLayer as Array<any>).push(arguments);
+                }
+                gtag('js', new Date());
+                gtag('config', GA_ANALYTICS_ID);
 
-    // Prevent double-loading
-    if (document.getElementById('ga-script')) return;
-
-    // Add the script tag dynamically to the DOM
-    const script = document.createElement('script');
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ANALYTICS_ID}`;
-    script.async = true;
-    script.id = 'ga-script';
-
-    script.onload = () => {
-      window.dataLayer = window.dataLayer || [];
-      function gtag(...args: any[]) {
-        window.dataLayer.push(args);
-      }
-      gtag('js', new Date());
-      gtag('config', GA_ANALYTICS_ID);
-    };
-
-    document.head.appendChild(script);
-  } catch (error) {
-    console.error('GA init error:', error);
-  }
-}
-,
+                // Adding the script tag dynamically to the DOM.
+                const script = document.createElement('script');
+                script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ANALYTICS_ID}`;
+                script.async = true;
+                document.body.appendChild(script);
+              } catch (error) {
+                console.error(error);
+              }
+            },
             onReject: () => {},
           },
         },
