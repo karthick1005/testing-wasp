@@ -21,7 +21,7 @@ app OpenSaaS {
     "<meta name='twitter:image:width' content='800' />",
     "<meta name='twitter:image:height' content='400' />",
     "<meta name='twitter:card' content='summary_large_image' />",
-    "<link rel=\"manifest\" href=\"/manifest.json\">"
+    "<link rel=\"manifest\" href=\"/manifest.json\">",
     // TODO: You can put your Plausible analytics scripts below (https://docs.opensaas.sh/guides/analytics/):
     // NOTE: Plausible does not use Cookies, so you can simply add the scripts here.
     // Google, on the other hand, does, so you must instead add the script dynamically
