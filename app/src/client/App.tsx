@@ -42,7 +42,7 @@ export default function App() {
   }, [location]);
  useEffect(() => {
   const script = document.createElement("script");
-  script.src = "https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX";
+  script.src = "https://www.googletagmanager.com/gtag/js?id=G-QJ5ZFJ024D";
   script.async = true;
   document.head.appendChild(script);
 
