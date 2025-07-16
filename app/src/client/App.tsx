@@ -38,25 +38,24 @@ export default function App() {
   }, [location]);
  
 useEffect(() => {
-  
-    const handleAppInstalled = () => {
-      console.log("PWA installed");
+  const handleAppInstalled = () => {
+    console.log("PWA installed");
 
-      // Send custom event to GA4
-      if (typeof gtag === "function") {
-        gtag("event", "pwa_installed", {
-          event_category: "PWA",
-          event_label: navigator.platform,
-        });
-      }
-    };
+    if (typeof window.gtag === "function") {
+      console.log("Sending GA4 event for PWA installation");
+      window.gtag("event", "pwa_installed", {
+        event_category: "PWA",
+        event_label: navigator.platform,
+      });
+    } else {
+      console.warn("gtag not initialized");
+    }
+  };
 
-    window.addEventListener("appinstalled", handleAppInstalled);
+  window.addEventListener("appinstalled", handleAppInstalled);
+  return () => window.removeEventListener("appinstalled", handleAppInstalled);
+}, []);
 
-    return () => {
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, []);
   return (
     <>
       <div className='min-h-screen dark:text-white dark:bg-boxdark-2'>
