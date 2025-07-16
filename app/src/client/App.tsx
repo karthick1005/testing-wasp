@@ -8,7 +8,7 @@ import { routes } from 'wasp/client/router';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from 'wasp/client/auth';
 import { useIsLandingPage } from './hooks/useIsLandingPage';
-
+declare var gtag: (...args: any[]) => void;
 /**
  * use this component to wrap all child components
  * this is useful for templates, themes, and context
@@ -37,7 +37,26 @@ export default function App() {
     }
   }, [location]);
  
+useEffect(() => {
+  
+    const handleAppInstalled = () => {
+      console.log("PWA installed");
 
+      // Send custom event to GA4
+      if (typeof gtag === "function") {
+        gtag("event", "pwa_installed", {
+          event_category: "PWA",
+          event_label: navigator.platform,
+        });
+      }
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
   return (
     <>
       <div className='min-h-screen dark:text-white dark:bg-boxdark-2'>
