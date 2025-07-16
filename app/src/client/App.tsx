@@ -40,43 +40,43 @@ export default function App() {
       }
     }
   }, [location]);
- useEffect(() => {
-  const script = document.createElement("script");
-  script.src = "https://www.googletagmanager.com/gtag/js?id=G-QJ5ZFJ024D";
-  script.async = true;
-  document.head.appendChild(script);
+//  useEffect(() => {
+//   const script = document.createElement("script");
+//   script.src = "https://www.googletagmanager.com/gtag/js?id=G-QJ5ZFJ024D";
+//   script.async = true;
+//   document.head.appendChild(script);
 
-  script.onload = () => {
-    window.dataLayer = window.dataLayer || [];
-    function gtag(...args: any[]) {
-      window.dataLayer.push(args);
-    }
-    window.gtag = gtag;
-    gtag("js", new Date());
-    gtag("config", "G-QJ5ZFJ024D");
-  };
-}, []);
+//   script.onload = () => {
+//     window.dataLayer = window.dataLayer || [];
+//     function gtag(...args: any[]) {
+//       window.dataLayer.push(args);
+//     }
+//     window.gtag = gtag;
+//     gtag("js", new Date());
+//     gtag("config", "G-QJ5ZFJ024D");
+//   };
+// }, []);
 
 useEffect(() => {
-  const handleAppInstalled = () => {
-    console.log("PWA installed");
-
-    if (typeof window.gtag === "function") {
-      console.log("Sending GA4 event for PWA installation");
-      try {
-        window.gtag("event", "pwa_installed", {
-          event_category: "PWA",
-          event_label: navigator.platform,
-           debug_mode: true, // 👈 This enables GA4 DebugView manually
-        });
-      } catch (error) {
-        console.error("Error sending GA4 event for PWA installation:", error);
-        
+ const handleAppInstalled = () => {
+      console.log("PWA installed");
+      if (typeof window.gtag === "function") {
+        try {
+          window.gtag("event", "pwa_installed", {
+            event_category: "PWA",
+  //           event_label:  navigator.?.platform ||
+  // navigator.platform || // fallback for older browsers
+  // "unknown",
+            debug_mode: true, // DebugView only
+          });
+        } catch (error) {
+          console.error("Error sending GA4 event for PWA installation:", error);
+        }
+      } else {
+        console.warn("gtag not initialized");
       }
-    } else {
-      console.warn("gtag not initialized");
-    }
-  };
+    };
+
 
   window.addEventListener("appinstalled", handleAppInstalled);
   return () => window.removeEventListener("appinstalled", handleAppInstalled);
