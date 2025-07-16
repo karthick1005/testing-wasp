@@ -58,32 +58,32 @@ const getConfig = () => {
             label: "Google Analytics",
             onAccept: () => {
               try {
-                const GA_ANALYTICS_ID = import.meta.env
-                  .REACT_APP_GOOGLE_ANALYTICS_ID;
+               const GA_ID = import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID;
+  if (!GA_ID) return;
 
-                if (!GA_ANALYTICS_ID || !GA_ANALYTICS_ID.length) {
-                  throw new Error("Google Analytics ID is missing");
-                }
+  window.dataLayer = window.dataLayer || [];
+  function gtag(...args: any[]) {
+    window.dataLayer.push(args);
+  }
+  window.gtag = gtag;
 
-                // Step 1: Define dataLayer and gtag
-                window.dataLayer = window.dataLayer || [];
-                function gtag(...args: unknown[]) {
-                  (window.dataLayer as Array<any>).push(args);
-                }
-                window.gtag = gtag;
+  const script = document.createElement("script");
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+  script.async = true;
+  script.onload = () => {
+    window.gtag("js", new Date());
+    window.gtag("config", GA_ID, {
+      debug_mode: true,
+    });
 
-                // Step 2: Load the GA script
-                const script = document.createElement("script");
-                script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ANALYTICS_ID}`;
-                script.async = true;
-                script.onload = () => {
-                  // Step 3: Now that GA is ready, initialize it
-                  gtag("js", new Date());
-                  gtag("config", GA_ANALYTICS_ID, {
-                    debug_mode: true,
-                  });
-                };
-                document.head.appendChild(script);
+    // You can test here
+    window.gtag("event", "test_event", {
+      event_category: "Debug",
+      event_label: "manual test",
+      debug_mode: true,
+    });
+  };
+  document.head.appendChild(script);
               } catch (error) {
                 console.error(error);
               }
