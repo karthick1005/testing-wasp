@@ -8,7 +8,11 @@ import { routes } from 'wasp/client/router';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from 'wasp/client/auth';
 import { useIsLandingPage } from './hooks/useIsLandingPage';
-declare var gtag: (...args: any[]) => void;
+declare global {
+  interface Window {
+    gtag: (...args: any[]) => void;
+  }
+}
 /**
  * use this component to wrap all child components
  * this is useful for templates, themes, and context
@@ -36,7 +40,23 @@ export default function App() {
       }
     }
   }, [location]);
- 
+ useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX";
+  script.async = true;
+  document.head.appendChild(script);
+
+  script.onload = () => {
+    window.dataLayer = window.dataLayer || [];
+    function gtag(...args: any[]) {
+      window.dataLayer.push(args);
+    }
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", "G-XXXXXXX");
+  };
+}, []);
+
 useEffect(() => {
   const handleAppInstalled = () => {
     console.log("PWA installed");
