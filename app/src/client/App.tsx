@@ -53,7 +53,7 @@ export default function App() {
     }
     window.gtag = gtag;
     gtag("js", new Date());
-    gtag("config", "G-XXXXXXX");
+    gtag("config", "G-QJ5ZFJ024D");
   };
 }, []);
 
@@ -63,10 +63,15 @@ useEffect(() => {
 
     if (typeof window.gtag === "function") {
       console.log("Sending GA4 event for PWA installation");
-      window.gtag("event", "pwa_installed", {
-        event_category: "PWA",
-        event_label: navigator.platform,
-      });
+      try {
+        window.gtag("event", "pwa_installed", {
+          event_category: "PWA",
+          event_label: navigator.platform,
+        });
+      } catch (error) {
+        console.error("Error sending GA4 event for PWA installation:", error);
+        
+      }
     } else {
       console.warn("gtag not initialized");
     }
