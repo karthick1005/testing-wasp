@@ -1,329 +1,389 @@
+// 🔥 TEMPLATE CONFIGURATION: Main App Configuration
+// Change the app name below to match your SaaS application name
 app OpenSaaS {
   wasp: {
+    // 📦 WASP VERSION: Keep this updated to the latest stable version
     version: "^0.16.0"
   },
 
+  // 🏷️ APP TITLE: Change this to your app's name - appears in browser tab
   title: "My Open SaaS App",
 
   head: [
     "<meta charset='utf-8' />",
-    "<meta name='description' content='Your apps main description and features.' />",
-    "<meta name='author' content='Your (App) Name' />",
-    "<meta name='keywords' content='saas, solution, product, app, service' />",
+    // 📝 SEO META TAGS: Update these for your app's SEO
+    "<meta name='description' content='Your apps main description and features.' />", // 🔧 CHANGE: App description for SEO
+    "<meta name='author' content='Your (App) Name' />", // 🔧 CHANGE: Your company/app name
+    "<meta name='keywords' content='saas, solution, product, app, service' />", // 🔧 CHANGE: Keywords relevant to your app
     
+    // 📱 OPEN GRAPH META TAGS: Update for social media sharing
     "<meta property='og:type' content='website' />",
-    "<meta property='og:title' content='Your Open SaaS App' />",
-    "<meta property='og:site_name' content='Your Open SaaS App' />",
-    "<meta property='og:url' content='https://your-saas-app.com' />",
-    "<meta property='og:description' content='Your apps main description and features.' />",
-    "<meta property='og:image' content='https://your-saas-app.com/public-banner.webp' />",
-    "<meta name='twitter:image' content='https://your-saas-app.com/public-banner.webp' />",
-    "<meta name='twitter:image:width' content='800' />",
+    "<meta property='og:title' content='Your Open SaaS App' />", // 🔧 CHANGE: Title shown when shared on social media
+    "<meta property='og:site_name' content='Your Open SaaS App' />", // 🔧 CHANGE: Site name for social media
+    "<meta property='og:url' content='https://your-saas-app.com' />", // 🔧 CHANGE: Your app's domain URL
+    "<meta property='og:description' content='Your apps main description and features.' />", // 🔧 CHANGE: Description for social media
+    "<meta property='og:image' content='https://your-saas-app.com/public-banner.webp' />", // 🔧 CHANGE: URL to your social media banner image
+    
+    // 🐦 TWITTER META TAGS: Update for Twitter sharing
+    "<meta name='twitter:image' content='https://your-saas-app.com/public-banner.webp' />", // 🔧 CHANGE: Same as og:image
+    "<meta name='twitter:image:width' content='800' />", // 📏 Image dimensions for Twitter cards
     "<meta name='twitter:image:height' content='400' />",
     "<meta name='twitter:card' content='summary_large_image' />",
+    
+    // 📱 PWA MANIFEST: Links to your Progressive Web App manifest
     "<link rel=\"manifest\" href=\"/manifest.json\">",
+    
+    // 📊 ANALYTICS SETUP: Configure your analytics tracking
     // TODO: You can put your Plausible analytics scripts below (https://docs.opensaas.sh/guides/analytics/):
     // NOTE: Plausible does not use Cookies, so you can simply add the scripts here.
     // Google, on the other hand, does, so you must instead add the script dynamically
     // via the Cookie Consent component after the user clicks the "Accept" cookies button.
-    "<script defer data-domain='<your-site-id>' src='https://plausible.io/js/script.js'></script>",  // for production
-    "<script defer data-domain='<your-site-id>' src='https://plausible.io/js/script.local.js'></script>",  // for development
+    "<script defer data-domain='<your-site-id>' src='https://plausible.io/js/script.js'></script>",  // 🔧 CHANGE: Replace <your-site-id> with your Plausible domain for production
+    "<script defer data-domain='<your-site-id>' src='https://plausible.io/js/script.local.js'></script>",  // 🔧 CHANGE: Replace <your-site-id> with your Plausible domain for development
   ],
 
+  // 🔐 AUTHENTICATION CONFIGURATION: User authentication and authorization setup
   // 🔐 Auth out of the box! https://wasp.sh/docs/auth/overview
   auth: {
-    userEntity: User,
+    userEntity: User, // 📚 References the User entity from schema.prisma
     methods: {
+      // 📧 EMAIL AUTHENTICATION: Built-in email/password authentication
       // NOTE: If you decide to not use email auth, make sure to also delete the related routes and pages below.
       //   (RequestPasswordReset(Route|Page), PasswordReset(Route|Page), EmailVerification(Route|Page))
       email: {
         fromField: {
-          name: "Open SaaS App",
-          email: "me@example.com"
+          // 🔧 CHANGE: Update sender name and email for outgoing emails
+          name: "Open SaaS App", // 🔧 CHANGE: Your app name that appears in email "From" field
+          email: "me@example.com" // 🔧 CHANGE: Your verified sender email address
         },
         emailVerification: {
-          clientRoute: EmailVerificationRoute,
-          getEmailContentFn: import { getVerificationEmailContent } from "@src/auth/email-and-pass/emails",
+          clientRoute: EmailVerificationRoute, // 🔗 Route for email verification page
+          getEmailContentFn: import { getVerificationEmailContent } from "@src/auth/email-and-pass/emails", // 🎨 Email template function
         },
         passwordReset: {
-          clientRoute: PasswordResetRoute,
-          getEmailContentFn: import { getPasswordResetEmailContent } from "@src/auth/email-and-pass/emails",
+          clientRoute: PasswordResetRoute, // 🔗 Route for password reset page
+          getEmailContentFn: import { getPasswordResetEmailContent } from "@src/auth/email-and-pass/emails", // 🎨 Email template function
         },
-        userSignupFields: import { getEmailUserFields } from "@src/auth/userSignupFields",
+        userSignupFields: import { getEmailUserFields } from "@src/auth/userSignupFields", // 🔧 User registration field configuration
       },
+      // 🌐 SOCIAL AUTHENTICATION OPTIONS: Enable/configure social login providers
       // Uncomment to enable Google Auth (check https://wasp.sh/docs/auth/social-auth/google for setup instructions):
-      // google: { // Guide for setting up Auth via Google
+      // google: { // 🔧 ENABLE: Google OAuth integration - requires API key setup
       //   userSignupFields: import { getGoogleUserFields } from "@src/auth/userSignupFields",
       //   configFn: import { getGoogleAuthConfig } from "@src/auth/userSignupFields",
       // },
       // Uncomment to enable GitHub Auth (check https://wasp.sh/docs/auth/social-auth/github for setup instructions):
-      // gitHub: {
+      // gitHub: { // 🔧 ENABLE: GitHub OAuth integration - requires GitHub app setup
       //   userSignupFields: import { getGitHubUserFields } from "@src/auth/userSignupFields",
       //   configFn: import { getGitHubAuthConfig } from "@src/auth/userSignupFields",
       // },
       // Uncomment to enable Discord Auth (check https://wasp.sh/docs/auth/social-auth/discord for setup instructions):
-      // discord: {
+      // discord: { // 🔧 ENABLE: Discord OAuth integration - requires Discord app setup
       //   userSignupFields: import { getDiscordUserFields } from "@src/auth/userSignupFields",
       //   configFn: import { getDiscordAuthConfig } from "@src/auth/userSignupFields"
       // }
     },
-    onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/demo-app",
+    // 🔄 AUTHENTICATION REDIRECTS: Configure where users go after auth actions
+    onAuthFailedRedirectTo: "/login", // 🔧 CHANGE: Page to redirect to when authentication fails
+    onAuthSucceededRedirectTo: "/demo-app", // 🔧 CHANGE: Page to redirect to after successful login
   },
 
+  // 🗄️ DATABASE CONFIGURATION: Database setup and seeding
   db: {
-    // Run `wasp db seed` to seed the database with the seed functions below:
+    // 🌱 DATABASE SEEDING: Run `wasp db seed` to populate database with initial data
     seeds: [
-      // Populates the database with a bunch of fake users to work with during development.
-      import { seedMockUsers } from "@src/server/scripts/dbSeeds",
+      // 👥 DEV DATA: Populates the database with fake users for development/testing
+      import { seedMockUsers } from "@src/server/scripts/dbSeeds", // 🔧 MODIFY: Customize or add more seed functions
     ]
   },
 
+  // 🎨 CLIENT CONFIGURATION: Frontend app root component
   client: {
-    rootComponent: import App from "@src/client/App",
+    rootComponent: import App from "@src/client/App", // 🔧 MODIFY: Main React component that wraps your entire app
   },
 
+  // 📧 EMAIL SERVICE CONFIGURATION: Email sending setup
   emailSender: {
+    // ⚠️ EMAIL PROVIDER: Switch to production email service for live deployment
     // NOTE: "Dummy" provider is just for local development purposes.
     //   Make sure to check the server logs for the email confirmation url (it will not be sent to an address)!
     //   Once you are ready for production, switch to e.g. "SendGrid" or "Mailgun" providers. Check out https://docs.opensaas.sh/guides/email-sending/ .
-    provider: SendGrid,
+    provider: SendGrid, // 🔧 CHANGE: Replace with your email service (SendGrid, Mailgun, etc.)
     defaultFrom: {
-      name: "Open SaaS App",
-      // When using a real provider, e.g. SendGrid, you must use the same email address that you configured your account to send out emails with!
-      email: "me@example.com"
+      // 🔧 CHANGE: Default sender information for all outgoing emails
+      name: "Open SaaS App", // 🔧 CHANGE: Your app name
+      // ⚠️ IMPORTANT: When using a real provider, e.g. SendGrid, you must use the same email address that you configured your account to send out emails with!
+      email: "me@example.com" // 🔧 CHANGE: Your verified sender email address
     },
   },
 }
 
-route LandingPageRoute { path: "/", to: LandingPage }
+// 🏠 LANDING PAGE ROUTE: Main entry point of your app
+route LandingPageRoute { path: "/", to: LandingPage } // 🔧 MODIFY: Root URL route configuration
 page LandingPage {
-  component: import LandingPage from "@src/landing-page/LandingPage"
+  component: import LandingPage from "@src/landing-page/LandingPage" // 🔧 MODIFY: Landing page component location
 }
 
-//#region Auth Pages
-route LoginRoute { path: "/login", to: LoginPage }
+//#region 🔐 AUTHENTICATION PAGES: User authentication UI pages
+// 🔑 LOGIN PAGE: User sign-in interface
+route LoginRoute { path: "/login", to: LoginPage } // 🔧 MODIFY: Login URL path
 page LoginPage {
-  component: import Login from "@src/auth/LoginPage"
+  component: import Login from "@src/auth/LoginPage" // 🔧 MODIFY: Login component location
 }
 
-route SignupRoute { path: "/signup", to: SignupPage }
+// ✍️ SIGNUP PAGE: User registration interface
+route SignupRoute { path: "/signup", to: SignupPage } // 🔧 MODIFY: Signup URL path
 page SignupPage {
-  component: import { Signup } from "@src/auth/SignupPage"
+  component: import { Signup } from "@src/auth/SignupPage" // 🔧 MODIFY: Signup component location
 }
 
-route RequestPasswordResetRoute { path: "/request-password-reset", to: RequestPasswordResetPage }
+// 🔄 PASSWORD RESET REQUEST: Initiate password reset process
+route RequestPasswordResetRoute { path: "/request-password-reset", to: RequestPasswordResetPage } // 🔧 MODIFY: Password reset request URL
 page RequestPasswordResetPage {
-  component: import { RequestPasswordResetPage } from "@src/auth/email-and-pass/RequestPasswordResetPage",
+  component: import { RequestPasswordResetPage } from "@src/auth/email-and-pass/RequestPasswordResetPage", // 🔧 MODIFY: Component location
 }
 
-route PasswordResetRoute { path: "/password-reset", to: PasswordResetPage }
+// 🔑 PASSWORD RESET: Complete password reset process
+route PasswordResetRoute { path: "/password-reset", to: PasswordResetPage } // 🔧 MODIFY: Password reset URL
 page PasswordResetPage {
-  component: import { PasswordResetPage } from "@src/auth/email-and-pass/PasswordResetPage",
+  component: import { PasswordResetPage } from "@src/auth/email-and-pass/PasswordResetPage", // 🔧 MODIFY: Component location
 }
 
-route EmailVerificationRoute { path: "/email-verification", to: EmailVerificationPage }
+// ✅ EMAIL VERIFICATION: Verify user email addresses
+route EmailVerificationRoute { path: "/email-verification", to: EmailVerificationPage } // 🔧 MODIFY: Email verification URL
 page EmailVerificationPage {
-  component: import { EmailVerificationPage } from "@src/auth/email-and-pass/EmailVerificationPage",
+  component: import { EmailVerificationPage } from "@src/auth/email-and-pass/EmailVerificationPage", // 🔧 MODIFY: Component location
 }
 //#endregion
 
-//#region User
-route AccountRoute { path: "/account", to: AccountPage }
+//#region 👤 USER MANAGEMENT: User account and admin operations
+// 👤 USER ACCOUNT PAGE: User profile and settings
+route AccountRoute { path: "/account", to: AccountPage } // 🔧 MODIFY: User account URL path
 page AccountPage {
-  authRequired: true,
-  component: import Account from "@src/user/AccountPage"
+  authRequired: true, // 🔒 Requires user authentication
+  component: import Account from "@src/user/AccountPage" // 🔧 MODIFY: Account component location
 }
 
+// 📊 USER QUERY: Fetch paginated list of users (admin functionality)
 query getPaginatedUsers {
-  fn: import { getPaginatedUsers } from "@src/user/operations",
-  entities: [User]
+  fn: import { getPaginatedUsers } from "@src/user/operations", // 🔧 MODIFY: User operations file location
+  entities: [User] // 📚 Database entities this query can access
 }
 
+// ⚡ ADMIN ACTION: Update user admin status (admin functionality)
 action updateIsUserAdminById {
-  fn: import { updateIsUserAdminById } from "@src/user/operations",
-  entities: [User]
+  fn: import { updateIsUserAdminById } from "@src/user/operations", // 🔧 MODIFY: User operations file location
+  entities: [User] // 📚 Database entities this action can modify
 }
 //#endregion
 
-//#region Demo AI App
-route DemoAppRoute { path: "/demo-app", to: DemoAppPage }
+//#region 🤖 DEMO AI APPLICATION: Sample AI-powered features
+// 🤖 AI DEMO PAGE: Showcase AI functionality to users
+route DemoAppRoute { path: "/demo-app", to: DemoAppPage } // 🔧 MODIFY: Demo app URL path
 page DemoAppPage {
-  authRequired: true,
-  component: import DemoAppPage from "@src/demo-ai-app/DemoAppPage"
+  authRequired: true, // 🔒 Requires user authentication
+  component: import DemoAppPage from "@src/demo-ai-app/DemoAppPage" // 🔧 MODIFY: Demo app component location
 }
 
+// 🧠 AI ACTION: Generate GPT responses using OpenAI API
 action generateGptResponse {
-  fn: import { generateGptResponse } from "@src/demo-ai-app/operations",
-  entities: [User, Task, GptResponse]
+  fn: import { generateGptResponse } from "@src/demo-ai-app/operations", // 🔧 MODIFY: AI operations file location
+  entities: [User, Task, GptResponse] // 📚 Database entities this action can access/modify
 }
 
+// ➕ TASK ACTION: Create new tasks for users
 action createTask {
-  fn: import { createTask } from "@src/demo-ai-app/operations",
-  entities: [Task]
+  fn: import { createTask } from "@src/demo-ai-app/operations", // 🔧 MODIFY: Task operations file location
+  entities: [Task] // 📚 Database entities this action can modify
 }
 
+// ❌ TASK ACTION: Delete user tasks
 action deleteTask {
-  fn: import { deleteTask } from "@src/demo-ai-app/operations",
-  entities: [Task]
+  fn: import { deleteTask } from "@src/demo-ai-app/operations", // 🔧 MODIFY: Task operations file location
+  entities: [Task] // 📚 Database entities this action can modify
 }
 
+// ✏️ TASK ACTION: Update existing tasks
 action updateTask {
-  fn: import { updateTask } from "@src/demo-ai-app/operations",
-  entities: [Task]
+  fn: import { updateTask } from "@src/demo-ai-app/operations", // 🔧 MODIFY: Task operations file location
+  entities: [Task] // 📚 Database entities this action can modify
 }
 
+// 📋 AI QUERY: Fetch user's GPT response history
 query getGptResponses {
-  fn: import { getGptResponses } from "@src/demo-ai-app/operations",
-  entities: [User, GptResponse]
+  fn: import { getGptResponses } from "@src/demo-ai-app/operations", // 🔧 MODIFY: AI operations file location
+  entities: [User, GptResponse] // 📚 Database entities this query can access
 }
 
+// 📝 TASK QUERY: Fetch all tasks for a specific user
 query getAllTasksByUser {
-  fn: import { getAllTasksByUser } from "@src/demo-ai-app/operations",
-  entities: [Task]
+  fn: import { getAllTasksByUser } from "@src/demo-ai-app/operations", // 🔧 MODIFY: Task operations file location
+  entities: [Task] // 📚 Database entities this query can access
 }
 //#endregion
 
-//#region Payment
-route PricingPageRoute { path: "/pricing", to: PricingPage }
+//#region 💰 PAYMENT PROCESSING: Subscription and billing management
+// 💰 PRICING PAGE: Display subscription plans and pricing
+route PricingPageRoute { path: "/pricing", to: PricingPage } // 🔧 MODIFY: Pricing page URL path
 page PricingPage {
-  component: import PricingPage from "@src/payment/PricingPage"
+  component: import PricingPage from "@src/payment/PricingPage" // 🔧 MODIFY: Pricing component location
 }
 
-route CheckoutRoute { path: "/checkout", to: CheckoutPage }
+// 🛒 CHECKOUT PAGE: Handle subscription purchases
+route CheckoutRoute { path: "/checkout", to: CheckoutPage } // 🔧 MODIFY: Checkout URL path
 page CheckoutPage {
-  authRequired: true,
-  component: import Checkout from "@src/payment/CheckoutPage"
+  authRequired: true, // 🔒 Requires user authentication
+  component: import Checkout from "@src/payment/CheckoutPage" // 🔧 MODIFY: Checkout component location
 }
 
+// 🔗 PAYMENT QUERY: Get customer portal URL for subscription management
 query getCustomerPortalUrl {
-  fn: import { getCustomerPortalUrl } from  "@src/payment/operations",
-  entities: [User]
+  fn: import { getCustomerPortalUrl } from  "@src/payment/operations", // 🔧 MODIFY: Payment operations file location
+  entities: [User] // 📚 Database entities this query can access
 }
 
+// 💳 PAYMENT ACTION: Create Stripe checkout session for subscriptions
 action generateCheckoutSession {
-  fn: import { generateCheckoutSession } from "@src/payment/operations",
-  entities: [User]
+  fn: import { generateCheckoutSession } from "@src/payment/operations", // 🔧 MODIFY: Payment operations file location
+  entities: [User] // 📚 Database entities this action can modify
 }
 
+// 🔔 PAYMENT WEBHOOK: Handle payment provider webhooks (Stripe/LemonSqueezy)
 api paymentsWebhook {
-  fn: import { paymentsWebhook } from "@src/payment/webhook",
-  entities: [User],
-  middlewareConfigFn: import { paymentsMiddlewareConfigFn } from "@src/payment/webhook",
-  httpRoute: (POST, "/payments-webhook")
+  fn: import { paymentsWebhook } from "@src/payment/webhook", // 🔧 MODIFY: Webhook handler file location
+  entities: [User], // 📚 Database entities this webhook can modify
+  middlewareConfigFn: import { paymentsMiddlewareConfigFn } from "@src/payment/webhook", // 🔧 MODIFY: Webhook middleware configuration
+  httpRoute: (POST, "/payments-webhook") // 🔧 MODIFY: Webhook endpoint URL - must match payment provider settings
 }
 //#endregion
 
-//#region File Upload
-route FileUploadRoute { path: "/file-upload", to: FileUploadPage }
+//#region 📁 FILE UPLOAD SYSTEM: File storage and management
+// 📁 FILE UPLOAD PAGE: User interface for file uploads
+route FileUploadRoute { path: "/file-upload", to: FileUploadPage } // 🔧 MODIFY: File upload URL path
 page FileUploadPage {
-  authRequired: true,
-  component: import FileUpload from "@src/file-upload/FileUploadPage"
+  authRequired: true, // 🔒 Requires user authentication
+  component: import FileUpload from "@src/file-upload/FileUploadPage" // 🔧 MODIFY: File upload component location
 }
 
+// ➕ FILE ACTION: Create file records in database after upload
 action createFile {
-  fn: import { createFile } from "@src/file-upload/operations",
-  entities: [User, File]
+  fn: import { createFile } from "@src/file-upload/operations", // 🔧 MODIFY: File operations file location
+  entities: [User, File] // 📚 Database entities this action can modify
 }
 
+// 📋 FILE QUERY: Fetch all files uploaded by a specific user
 query getAllFilesByUser {
-  fn: import { getAllFilesByUser } from "@src/file-upload/operations",
-  entities: [User, File]
+  fn: import { getAllFilesByUser } from "@src/file-upload/operations", // 🔧 MODIFY: File operations file location
+  entities: [User, File] // 📚 Database entities this query can access
 }
 
+// 🔗 FILE QUERY: Generate signed download URLs for secure file access
 query getDownloadFileSignedURL {
-  fn: import { getDownloadFileSignedURL } from "@src/file-upload/operations",
-  entities: [User, File]
+  fn: import { getDownloadFileSignedURL } from "@src/file-upload/operations", // 🔧 MODIFY: File operations file location
+  entities: [User, File] // 📚 Database entities this query can access
 }
 //#endregion
 
-//#region Analytics
+//#region 📊 ANALYTICS SYSTEM: Application metrics and insights
+// 📈 ANALYTICS QUERY: Fetch daily statistics for dashboard display
 query getDailyStats {
-  fn: import { getDailyStats } from "@src/analytics/operations",
-  entities: [User, DailyStats]
+  fn: import { getDailyStats } from "@src/analytics/operations", // 🔧 MODIFY: Analytics operations file location
+  entities: [User, DailyStats] // 📚 Database entities this query can access
 }
 
+// ⏰ ANALYTICS JOB: Automated daily statistics calculation
 job dailyStatsJob {
-  executor: PgBoss,
+  executor: PgBoss, // 📋 Job queue system using PostgreSQL
   perform: {
-    fn: import { calculateDailyStats } from "@src/analytics/stats"
+    fn: import { calculateDailyStats } from "@src/analytics/stats" // 🔧 MODIFY: Stats calculation function location
   },
   schedule: {
-    cron: "0 * * * *" // every hour. useful in production
-    // cron: "* * * * *" // every minute. useful for debugging
+    cron: "0 * * * *" // ⏰ MODIFY: Runs every hour - useful in production
+    // cron: "* * * * *" // ⏰ ALTERNATIVE: Every minute - useful for debugging
   },
-  entities: [User, DailyStats, Logs, PageViewSource]
+  entities: [User, DailyStats, Logs, PageViewSource] // 📚 Database entities this job can access/modify
 }
 //#endregion
 
-//#region Admin Dashboard
-route AdminRoute { path: "/admin", to: AnalyticsDashboardPage }
+//#region 🔧 ADMIN DASHBOARD: Administrative interface and controls
+// 📊 ADMIN ANALYTICS: Main admin dashboard with analytics overview
+route AdminRoute { path: "/admin", to: AnalyticsDashboardPage } // 🔧 MODIFY: Admin dashboard URL path
 page AnalyticsDashboardPage {
-  authRequired: true,
-  component: import AnalyticsDashboardPage from "@src/admin/dashboards/analytics/AnalyticsDashboardPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AnalyticsDashboardPage from "@src/admin/dashboards/analytics/AnalyticsDashboardPage" // 🔧 MODIFY: Admin analytics component location
 }
 
-route AdminUsersRoute { path: "/admin/users", to: AdminUsersPage }
+// 👥 ADMIN USERS: User management dashboard
+route AdminUsersRoute { path: "/admin/users", to: AdminUsersPage } // 🔧 MODIFY: Admin users URL path
 page AdminUsersPage {
-  authRequired: true,
-  component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminUsers from "@src/admin/dashboards/users/UsersDashboardPage" // 🔧 MODIFY: Admin users component location
 }
 
-route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage }
+// ⚙️ ADMIN SETTINGS: Application settings management
+route AdminSettingsRoute { path: "/admin/settings", to: AdminSettingsPage } // 🔧 MODIFY: Admin settings URL path
 page AdminSettingsPage {
-  authRequired: true,
-  component: import AdminSettings from "@src/admin/elements/settings/SettingsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminSettings from "@src/admin/elements/settings/SettingsPage" // 🔧 MODIFY: Admin settings component location
 }
 
-route AdminChartsRoute { path: "/admin/chart", to: AdminChartsPage }
+// 📈 ADMIN CHARTS: Data visualization dashboard
+route AdminChartsRoute { path: "/admin/chart", to: AdminChartsPage } // 🔧 MODIFY: Admin charts URL path
 page AdminChartsPage {
-  authRequired: true,
-  component: import AdminCharts from "@src/admin/elements/charts/ChartsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminCharts from "@src/admin/elements/charts/ChartsPage" // 🔧 MODIFY: Admin charts component location
 }
 
-route AdminFormElementsRoute { path: "/admin/forms/form-elements", to: AdminFormElementsPage }
+// 📝 ADMIN FORM ELEMENTS: Form components showcase
+route AdminFormElementsRoute { path: "/admin/forms/form-elements", to: AdminFormElementsPage } // 🔧 MODIFY: Form elements URL path
 page AdminFormElementsPage {
-  authRequired: true,
-  component: import AdminForms from "@src/admin/elements/forms/FormElementsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminForms from "@src/admin/elements/forms/FormElementsPage" // 🔧 MODIFY: Form elements component location
 }
 
-route AdminFormLayoutsRoute { path: "/admin/forms/form-layouts", to: AdminFormLayoutsPage }
+// 📋 ADMIN FORM LAYOUTS: Form layout examples
+route AdminFormLayoutsRoute { path: "/admin/forms/form-layouts", to: AdminFormLayoutsPage } // 🔧 MODIFY: Form layouts URL path
 page AdminFormLayoutsPage {
-  authRequired: true,
-  component: import AdminForms from "@src/admin/elements/forms/FormLayoutsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminForms from "@src/admin/elements/forms/FormLayoutsPage" // 🔧 MODIFY: Form layouts component location
 }
 
-route AdminCalendarRoute { path: "/admin/calendar", to: AdminCalendarPage }
+// 📅 ADMIN CALENDAR: Calendar interface for admin
+route AdminCalendarRoute { path: "/admin/calendar", to: AdminCalendarPage } // 🔧 MODIFY: Admin calendar URL path
 page AdminCalendarPage {
-  authRequired: true,
-  component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminCalendar from "@src/admin/elements/calendar/CalendarPage" // 🔧 MODIFY: Admin calendar component location
 }
 
-route AdminUIAlertsRoute { path: "/admin/ui/alerts", to: AdminUIAlertsPage }
+// 🚨 ADMIN UI ALERTS: Alert components showcase
+route AdminUIAlertsRoute { path: "/admin/ui/alerts", to: AdminUIAlertsPage } // 🔧 MODIFY: UI alerts URL path
 page AdminUIAlertsPage {
-  authRequired: true,
-  component: import AdminUI from "@src/admin/elements/ui-elements/AlertsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminUI from "@src/admin/elements/ui-elements/AlertsPage" // 🔧 MODIFY: UI alerts component location
 }
 
-route AdminUIButtonsRoute { path: "/admin/ui/buttons", to: AdminUIButtonsPage }
+// 🔘 ADMIN UI BUTTONS: Button components showcase
+route AdminUIButtonsRoute { path: "/admin/ui/buttons", to: AdminUIButtonsPage } // 🔧 MODIFY: UI buttons URL path
 page AdminUIButtonsPage {
-  authRequired: true,
-  component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminUI from "@src/admin/elements/ui-elements/ButtonsPage" // 🔧 MODIFY: UI buttons component location
 }
 
-route NotFoundRoute { path: "*", to: NotFoundPage }
+// ❌ 404 NOT FOUND: Catch-all route for undefined pages
+route NotFoundRoute { path: "*", to: NotFoundPage } // 🔧 MODIFY: Catch-all route pattern
 page NotFoundPage {
-  component: import { NotFoundPage } from "@src/client/components/NotFoundPage"
+  component: import { NotFoundPage } from "@src/client/components/NotFoundPage" // 🔧 MODIFY: 404 page component location
 }
 //#endregion
 
-//#region Contact Form Messages
+//#region 💬 CONTACT FORM MESSAGES: User-to-admin communication system
+// 📧 ADMIN MESSAGES: Interface for viewing and managing user messages
 // TODO: 
 // add functionality to allow users to send messages to admin
 // and make them accessible via the admin dashboard
-route AdminMessagesRoute { path: "/admin/messages", to: AdminMessagesPage }
+route AdminMessagesRoute { path: "/admin/messages", to: AdminMessagesPage } // 🔧 MODIFY: Admin messages URL path
 page AdminMessagesPage {
-  authRequired: true,
-  component: import AdminMessages from "@src/messages/MessagesPage"
+  authRequired: true, // 🔒 Requires user authentication (add admin check in component)
+  component: import AdminMessages from "@src/messages/MessagesPage" // 🔧 MODIFY: Messages component location
 }
 //#endregion

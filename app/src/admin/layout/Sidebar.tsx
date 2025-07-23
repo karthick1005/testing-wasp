@@ -1,80 +1,147 @@
+// ⚛️ REACT HOOKS: Import React state and DOM management
 import React, { useEffect, useRef, useState } from 'react';
+// 🧭 ROUTING: Import React Router navigation components
 import { NavLink, useLocation } from 'react-router-dom';
-import Logo from '../../client/static/logo.webp';
-import SidebarLinkGroup from './SidebarLinkGroup';
+// 🖼️ BRANDING: Import app logo for sidebar header
+import Logo from '../../client/static/logo.webp'; // 🔧 CHANGE: Replace with your logo
+// 🧩 COMPONENTS: Import sidebar component utilities
+import SidebarLinkGroup from './SidebarLinkGroup'; // Collapsible link groups
+// 🎨 STYLING: Import conditional CSS class utility
 import { cn } from '../../client/cn';
 
+/**
+ * 🧭 SIDEBAR PROPS: Interface for sidebar component configuration
+ * 🔧 TEMPLATE USAGE: Control sidebar visibility and state
+ */
 interface SidebarProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: (arg: boolean) => void;
+  sidebarOpen: boolean; // 🔧 CHANGE: Mobile sidebar visibility state
+  setSidebarOpen: (arg: boolean) => void; // 🔧 CHANGE: Function to toggle sidebar
+  // 🔧 CHANGE: Add additional props (user role, collapsed state, etc.)
 }
 
+/**
+ * 🧭 ADMIN SIDEBAR: Navigation menu for admin dashboard
+ * 🔧 TEMPLATE USAGE: Primary navigation with collapsible sections and responsive design
+ * 
+ * Key features:
+ * - Mobile-responsive with overlay behavior
+ * - Persistent expanded/collapsed state
+ * - Click-outside-to-close functionality
+ * - Keyboard navigation (ESC to close)
+ * - Dark mode support
+ * - Hierarchical navigation with icons
+ */
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
+  // 📍 LOCATION: Track current route for active state highlighting
   const location = useLocation();
-  const { pathname } = location;
+  const { pathname } = location; // Current page path
+  // 🔧 CHANGE: Add route-based feature toggles or breadcrumbs
 
-  const trigger = useRef<any>(null);
-  const sidebar = useRef<any>(null);
+  // 🎯 DOM REFERENCES: Reference DOM elements for click detection
+  const trigger = useRef<any>(null); // Sidebar toggle button reference
+  const sidebar = useRef<any>(null); // Sidebar container reference
+  // 🔧 CHANGE: Type refs more strictly if needed (HTMLElement, etc.)
 
+  // 💾 PERSISTENT STATE: Restore sidebar expanded state from localStorage
   const storedSidebarExpanded = localStorage.getItem('sidebar-expanded');
   const [sidebarExpanded, setSidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === 'true'
+    // 🔧 CHANGE: Set different default expanded state or disable persistence
   );
 
-  // close on click outside
+  // 🖱️ CLICK OUTSIDE HANDLER: Close sidebar when clicking outside
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
-      if (!sidebar.current || !trigger.current) return;
+      if (!sidebar.current || !trigger.current) return; // Exit if refs not available
+      
+      // Keep sidebar open if clicking inside sidebar or trigger
       if (!sidebarOpen || sidebar.current.contains(target) || trigger.current.contains(target)) return;
+      
+      // Close sidebar if clicking outside
       setSidebarOpen(false);
+      // 🔧 CHANGE: Add custom close logic or analytics
     };
+    
+    // Add click event listener
     document.addEventListener('click', clickHandler);
+    // Cleanup event listener on component unmount
     return () => document.removeEventListener('click', clickHandler);
   });
 
-  // close if the esc key is pressed
+  // ⌨️ KEYBOARD HANDLER: Close sidebar with ESC key
   useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
+      // Only handle ESC key (keyCode 27) when sidebar is open
       if (!sidebarOpen || keyCode !== 27) return;
       setSidebarOpen(false);
+      // 🔧 CHANGE: Add additional keyboard shortcuts if needed
     };
+    
+    // Add keyboard event listener
     document.addEventListener('keydown', keyHandler);
+    // Cleanup event listener on component unmount
     return () => document.removeEventListener('keydown', keyHandler);
   });
 
+  // 💾 PERSISTENCE HANDLER: Save sidebar state and apply body classes
   useEffect(() => {
+    // Save expanded state to localStorage
     localStorage.setItem('sidebar-expanded', sidebarExpanded.toString());
+    // 🔧 CHANGE: Use different storage method or key
+    
+    // Apply CSS classes to body for layout adjustments
     if (sidebarExpanded) {
       document.querySelector('body')?.classList.add('sidebar-expanded');
     } else {
       document.querySelector('body')?.classList.remove('sidebar-expanded');
     }
+    // 🔧 CHANGE: Add custom layout classes or effects
   }, [sidebarExpanded]);
 
   return (
     <aside
-      ref={sidebar}
+      ref={sidebar} // Reference for click-outside detection
       className={cn(
         'absolute left-0 top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden bg-gray-800 duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0',
         {
-          'translate-x-0': sidebarOpen,
-          '-translate-x-full': !sidebarOpen,
+          'translate-x-0': sidebarOpen, // Show sidebar when open
+          // 🔧 CHANGE: Customize sidebar styling:
+          // - absolute left-0 top-0: positioning for mobile overlay
+          // - z-9999: high z-index for overlay
+          // - h-screen w-72.5: full height with fixed width
+          // - flex flex-col: vertical layout
+          // - overflow-y-hidden: prevent vertical scrolling
+          // - bg-gray-800 dark:bg-boxdark: background colors
+          // - duration-300 ease-linear: smooth transition
+          // - lg:static lg:translate-x-0: desktop behavior
+          '-translate-x-full': !sidebarOpen, // Hide sidebar when closed
+          // 🔧 CHANGE: Customize hidden state behavior
         }
       )}
     >
-      {/* <!-- SIDEBAR HEADER --> */}
+      {/* 🏠 SIDEBAR HEADER: Logo and branding section */}
       <div className='flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5'>
+        {/* 🔧 CHANGE: Adjust header spacing and alignment */}
+        
+        {/* 🏷️ LOGO LINK: Navigate to app home */}
         <NavLink to='/'>
+          {/* 🔧 CHANGE: Update route to admin dashboard or landing page */}
+          
+          {/* 🖼️ LOGO IMAGE: App logo for sidebar */}
           <img src={Logo} alt='Logo' width={50} />
+          {/* 🔧 CHANGE: Replace with your logo and adjust size */}
         </NavLink>
 
+        {/* 📱 MOBILE CLOSE BUTTON: Close sidebar on mobile */}
         <button
-          ref={trigger}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          ref={trigger} // Reference for click-outside detection
+          onClick={() => setSidebarOpen(!sidebarOpen)} // Toggle sidebar
           aria-controls='sidebar'
-          aria-expanded={sidebarOpen}
-          className='block lg:hidden'
+          aria-expanded={sidebarOpen} // Accessibility for screen readers
+          className='block lg:hidden' // Only show on mobile
+          // 🔧 CHANGE: Add custom mobile close button styling
         >
+          {/* ❌ CLOSE ICON: SVG close icon for mobile */}
           <svg
             className='fill-current'
             width='20'
@@ -86,33 +153,52 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             <path
               d='M19 8.175H2.98748L9.36248 1.6875C9.69998 1.35 9.69998 0.825 9.36248 0.4875C9.02498 0.15 8.49998 0.15 8.16248 0.4875L0.399976 8.3625C0.0624756 8.7 0.0624756 9.225 0.399976 9.5625L8.16248 17.4375C8.31248 17.5875 8.53748 17.7 8.76248 17.7C8.98748 17.7 9.17498 17.625 9.36248 17.475C9.69998 17.1375 9.69998 16.6125 9.36248 16.275L3.02498 9.8625H19C19.45 9.8625 19.825 9.4875 19.825 9.0375C19.825 8.55 19.45 8.175 19 8.175Z'
               fill=''
+              // 🔧 CHANGE: Replace with different close icon SVG
             />
           </svg>
         </button>
       </div>
-      {/* <!-- SIDEBAR HEADER --> */}
 
+      {/* 📱 SIDEBAR MENU: Scrollable navigation content */}
       <div className='no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear'>
-        {/* <!-- Sidebar Menu --> */}
+        {/* 🔧 CHANGE: Customize scrollable area styling:
+         * - no-scrollbar: hide scrollbar for clean appearance
+         * - flex flex-col: vertical layout
+         * - overflow-y-auto: enable vertical scrolling
+         * - duration-300 ease-linear: smooth transitions
+         */}
+        
+        {/* 🧭 NAVIGATION CONTAINER: Main menu navigation */}
         <nav className='mt-5 py-4 px-4 lg:mt-9 lg:px-6'>
-          {/* <!-- Menu Group --> */}
+          {/* 🔧 CHANGE: Adjust navigation spacing and padding */}
+          
+          {/* 📋 MENU SECTION: Primary navigation group */}
           <div>
-            <h3 className='mb-4 ml-4 text-sm font-semibold text-bodydark2'>MENU</h3>
+            {/* 🏷️ MENU TITLE: Section header for navigation items */}
+            <h3 className='mb-4 ml-4 text-sm font-semibold text-bodydark2'>
+              MENU
+              {/* 🔧 CHANGE: Replace with your menu section title */}
+            </h3>
 
+            {/* 📊 MENU ITEMS LIST: Navigation links container */}
             <ul className='mb-6 flex flex-col gap-1.5'>
-              {/* <!-- Menu Item Dashboard --> */}
+              {/* 🔧 CHANGE: Adjust menu list spacing (gap-1.5) */}
+              
+              {/* 🏠 DASHBOARD LINK: Main admin dashboard navigation */}
               <NavLink
-                to='/admin'
-                end
+                to='/admin' // 🔧 CHANGE: Update admin dashboard route
+                end // Match exact route only
                 className={({ isActive }) =>
                   cn(
                     'group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-gray-700 dark:hover:bg-meta-4',
                     {
-                      'bg-gray-700 dark:bg-meta-4': isActive,
+                      'bg-gray-700 dark:bg-meta-4': isActive, // Active state styling
+                      // 🔧 CHANGE: Customize active and hover states
                     }
                   )
                 }
               >
+                {/* 📊 DASHBOARD ICON: SVG icon for dashboard */}
                 <svg
                   className='fill-current'
                   width='18'
@@ -121,6 +207,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   fill='none'
                   xmlns='http://www.w3.org/2000/svg'
                 >
+                  {/* 🔧 CHANGE: Replace with your preferred dashboard icon */}
                   <path
                     d='M6.10322 0.956299H2.53135C1.5751 0.956299 0.787598 1.7438 0.787598 2.70005V6.27192C0.787598 7.22817 1.5751 8.01567 2.53135 8.01567H6.10322C7.05947 8.01567 7.84697 7.22817 7.84697 6.27192V2.72817C7.8751 1.7438 7.0876 0.956299 6.10322 0.956299ZM6.60947 6.30005C6.60947 6.5813 6.38447 6.8063 6.10322 6.8063H2.53135C2.2501 6.8063 2.0251 6.5813 2.0251 6.30005V2.72817C2.0251 2.44692 2.2501 2.22192 2.53135 2.22192H6.10322C6.38447 2.22192 6.60947 2.44692 6.60947 2.72817V6.30005Z'
                     fill=''

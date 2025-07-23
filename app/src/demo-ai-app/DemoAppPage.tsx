@@ -1,53 +1,113 @@
+// 📊 TYPES: Import Task entity type for database operations
 import { type Task } from 'wasp/entities';
 
+// 🔗 OPERATIONS: Import Wasp client operations for AI and CRUD functionality
 import {
-  generateGptResponse,
-  deleteTask,
-  updateTask,
-  createTask,
-  useQuery,
-  getAllTasksByUser,
+  generateGptResponse, // 🤖 AI operation for generating responses
+  deleteTask, // 🗑️ Delete task operation
+  updateTask, // ✏️ Update task operation
+  createTask, // ➕ Create new task operation
+  useQuery, // 📡 Query hook for data fetching
+  getAllTasksByUser, // 👤 Get user's tasks operation
 } from 'wasp/client/operations';
 
+// ⚛️ REACT HOOKS: Import React state management
 import { useState, useMemo } from 'react';
-import { CgSpinner } from 'react-icons/cg';
-import { TiDelete } from 'react-icons/ti';
+// 🎭 ICONS: Import React icons for UI elements
+import { CgSpinner } from 'react-icons/cg'; // Loading spinner icon
+import { TiDelete } from 'react-icons/ti'; // Delete action icon
+// 📅 SCHEDULE TYPES: Import custom types for schedule structure
 import type { GeneratedSchedule, MainTask, SubTask } from './schedule';
+// 🎨 STYLING: Import conditional CSS class utility
 import { cn } from '../client/cn';
 
+/**
+ * 🤖 DEMO AI APP PAGE: AI-powered day scheduler application
+ * 🔧 TEMPLATE USAGE: Example AI application showcasing OpenAI integration
+ * 
+ * Key features:
+ * - OpenAI chat completions with function calling
+ * - Structured JSON response generation
+ * - Task management with AI-powered scheduling
+ * - Responsive design with dark mode support
+ * - Real-time AI interaction
+ */
 export default function DemoAppPage() {
   return (
     <div className='py-10 lg:mt-10'>
+      {/* 🔧 CHANGE: Adjust page padding (py-10 lg:mt-10) */}
+      
+      {/* 📦 MAIN CONTAINER: Page content wrapper */}
       <div className='mx-auto max-w-7xl px-6 lg:px-8'>
+        {/* 🔧 CHANGE: Adjust container max width and padding */}
+        
+        {/* 📝 HEADER SECTION: App title and description */}
         <div className='mx-auto max-w-4xl text-center'>
+          {/* 🔧 CHANGE: Adjust header container width */}
+          
+          {/* 🏷️ APP TITLE: AI scheduler heading */}
           <h2 className='mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl dark:text-white'>
             <span className='text-yellow-500'>AI</span> Day Scheduler
+            {/* 🔧 CHANGE: Replace with your AI app name and branding colors */}
           </h2>
         </div>
+        
+        {/* 📄 DESCRIPTION: App functionality explanation */}
         <p className='mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-600 dark:text-white'>
           This example app uses OpenAI's chat completions with function calling to return a structured JSON object. Try
           it out, enter your day's tasks, and let AI do the rest!
+          {/* 🔧 CHANGE: Replace with your AI app description */}
         </p>
-        {/* begin AI-powered Todo List */}
+        
+        {/* 🤖 AI-POWERED TODO SECTION: Main application interface */}
         <div className='my-8 border rounded-3xl border-gray-900/10 dark:border-gray-100/10'>
+          {/* 🔧 CHANGE: Customize app container styling:
+           * - my-8: vertical margin
+           * - border rounded-3xl: border and corner radius
+           * - border-gray-900/10 dark:border-gray-100/10: border colors with opacity
+           */}
+          
+          {/* 📱 INNER CONTAINER: Responsive app content area */}
           <div className='sm:w-[90%] md:w-[70%] lg:w-[50%] py-10 px-6 mx-auto my-8 space-y-10'>
+            {/* 🔧 CHANGE: Adjust responsive widths and spacing:
+             * - sm:w-[90%] md:w-[70%] lg:w-[50%]: responsive width breakpoints
+             * - py-10 px-6: internal padding
+             * - mx-auto my-8: centering and margin
+             * - space-y-10: vertical spacing between children
+             */}
+            
+            {/* 📝 NEW TASK FORM: AI task creation interface */}
             <NewTaskForm handleCreateTask={createTask} />
+            {/* 🔧 CHANGE: Pass additional props or replace with your AI form component */}
           </div>
         </div>
-        {/* end AI-powered Todo List */}
       </div>
     </div>
   );
 }
 
+/**
+ * 📝 NEW TASK FORM COMPONENT: AI-powered task creation and scheduling interface
+ * 🔧 TEMPLATE USAGE: Form for collecting user input and generating AI responses
+ */
 function NewTaskForm({ handleCreateTask }: { handleCreateTask: typeof createTask }) {
+  // 🔧 CHANGE: Add additional props for form customization
+
+  // 📝 FORM STATE: User input for task description
   const [description, setDescription] = useState<string>('');
+  // 🔧 CHANGE: Add validation or default description
+
+  // ⏰ HOURS INPUT: Available hours for scheduling
   const [todaysHours, setTodaysHours] = useState<string>('8');
+  // 🔧 CHANGE: Adjust default hours or add time period selection
+
+  // 🤖 AI RESPONSE: Generated schedule from AI
   const [response, setResponse] = useState<GeneratedSchedule | null>({
+    // 📋 EXAMPLE DATA: Default schedule structure for demonstration
     mainTasks: [
       {
-        name: 'Respond to emails',
-        priority: 'high',
+        name: 'Respond to emails', // 🔧 CHANGE: Replace with your demo task
+        priority: 'high', // 🔧 CHANGE: Adjust priority levels
       },
       {
         name: 'Learn WASP',

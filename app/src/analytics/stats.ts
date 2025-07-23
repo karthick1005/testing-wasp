@@ -1,21 +1,52 @@
+// 🗃️ DATABASE ENTITIES: Import analytics entity types
 import { type DailyStats } from 'wasp/entities';
+// 🔧 WASP JOBS: Import background job type definitions  
 import { type DailyStatsJob } from 'wasp/server/jobs';
+// 💳 PAYMENT PROCESSORS: Import payment service clients
 import Stripe from 'stripe';
 import { stripe } from '../payment/stripe/stripeClient';
 import { listOrders } from '@lemonsqueezy/lemonsqueezy.js';
+// 📊 ANALYTICS PROVIDERS: Import analytics utilities
 // import { getDailyPageViews, getSources } from './providers/plausibleAnalyticsUtils';
 import { getDailyPageViews, getSources } from './providers/googleAnalyticsUtils';
+// 🔧 CHANGE: Switch analytics providers by commenting/uncommenting lines above
+// 💰 PAYMENT SYSTEM: Import payment configuration
 import { paymentProcessor } from '../payment/paymentProcessor';
 import { SubscriptionStatus } from '../payment/plans';
 
-export type DailyStatsProps = { dailyStats?: DailyStats; weeklyStats?: DailyStats[]; isLoading?: boolean };
+// 📊 TYPE DEFINITIONS: Analytics props for components
+export type DailyStatsProps = { 
+  dailyStats?: DailyStats; // Current day's statistics
+  weeklyStats?: DailyStats[]; // Array of daily stats for trending
+  isLoading?: boolean; // Loading state for UI components
+};
 
+/**
+ * 📊 DAILY ANALYTICS CALCULATION: Background job to compute and store daily metrics
+ * 🔧 TEMPLATE USAGE: Core analytics engine that runs daily to collect business metrics
+ * 
+ * Key features:
+ * - Automated daily statistics collection
+ * - Multi-payment processor revenue tracking (Stripe & LemonSqueezy)
+ * - Page view analytics integration (Google Analytics or Plausible)
+ * - User growth metrics calculation
+ * - Traffic source analysis
+ * - Error handling and logging
+ * 
+ * Collected metrics:
+ * - Total page views with day-over-day changes
+ * - User count and growth deltas
+ * - Paying user count and subscription metrics
+ * - Total revenue across payment processors
+ * - Traffic sources breakdown
+ */
 export const calculateDailyStats: DailyStatsJob<never, void> = async (_args, context) => {
+  // 📅 DATE SETUP: Establish UTC dates for consistent timezone handling
   const nowUTC = new Date(Date.now());
-  nowUTC.setUTCHours(0, 0, 0, 0);
+  nowUTC.setUTCHours(0, 0, 0, 0); // Start of today in UTC
 
   const yesterdayUTC = new Date(nowUTC);
-  yesterdayUTC.setUTCDate(yesterdayUTC.getUTCDate() - 1);
+  yesterdayUTC.setUTCDate(yesterdayUTC.getUTCDate() - 1); // Start of yesterday in UTC
 
   try {
     const yesterdaysStats = await context.entities.DailyStats.findFirst({

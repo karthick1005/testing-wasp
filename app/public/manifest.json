@@ -1,7 +1,7 @@
 {
-  "name": "Anxious Love",
-  "short_name": "Eli",
-  "description": "Eli is a virtual friend for your anxiety.",
+  "name": "My Open SaaS App",
+  "short_name": "OpenSaaS",
+  "description": "A comprehensive SaaS application with authentication, payments, and AI features.",
   "start_url": "/",
   "display": "standalone",
   "scope": "/",

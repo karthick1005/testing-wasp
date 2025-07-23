@@ -1,50 +1,126 @@
+// 🎨 STYLING: Import conditional CSS class utility
 import { cn } from '../cn';
+// 🌙 THEME HOOK: Import color mode management hook
 import useColorMode from '../hooks/useColorMode';
 
+/**
+ * 🌙 DARK MODE SWITCHER: Toggle between light and dark themes
+ * 🔧 TEMPLATE USAGE: Theme switcher component for user interface customization
+ * 
+ * Key features:
+ * - Smooth toggle animation with visual feedback
+ * - Accessible checkbox input with proper labels
+ * - Dynamic icons (sun/moon) based on current theme
+ * - Responsive design that works across all screen sizes
+ * - Integrated with global color mode state management
+ * - Stylish toggle switch with brand colors
+ */
 const DarkModeSwitcher = () => {
+  // 🎨 COLOR MODE STATE: Get current theme and setter function
   const [colorMode, setColorMode] = useColorMode();
+  // 🔧 CHANGE: Add localStorage key configuration if needed
+  
+  // 🌞 THEME CHECK: Determine if currently in light mode
   const isInLightMode = colorMode === 'light';
 
   return (
     <div>
-      <label className={cn('relative m-0 block h-7.5 w-14 rounded-full', isInLightMode ? 'bg-stroke' : 'bg-primary')}>
+      {/* 🔘 TOGGLE CONTAINER: Visual toggle switch wrapper */}
+      <label 
+        className={cn(
+          'relative m-0 block h-7.5 w-14 rounded-full', 
+          isInLightMode ? 'bg-stroke' : 'bg-primary'
+        )}
+        // 🔧 CHANGE: Customize toggle switch styling:
+        // - h-7.5 w-14: toggle switch dimensions
+        // - rounded-full: circular ends
+        // - bg-stroke/bg-primary: background colors for light/dark modes
+      >
+        {/* ♿ ACCESSIBLE INPUT: Hidden checkbox for screen readers and keyboard navigation */}
         <input
           type='checkbox'
           onChange={() => {
+            // 🔄 THEME TOGGLE: Switch between light and dark modes
             if (typeof setColorMode === 'function') {
               setColorMode(isInLightMode ? 'dark' : 'light');
+              // 🔧 CHANGE: Add custom theme change callbacks here
+              // - Analytics tracking for theme preference
+              // - Local storage persistence
+              // - System theme detection
             }
           }}
           className='absolute top-0 z-50 m-0 h-full w-full cursor-pointer opacity-0'
+          // 🔧 CHANGE: Customize checkbox input:
+          // - absolute positioning to cover entire toggle area
+          // - z-50: high z-index for clickability
+          // - opacity-0: invisible but functional
+          // - cursor-pointer: pointer cursor on hover
         />
+        
+        {/* 🎯 TOGGLE INDICATOR: Moving circle with icon */}
         <span
           className={cn(
             'absolute top-1/2 left-[3px] flex h-6 w-6 -translate-y-1/2 translate-x-0 items-center justify-center rounded-full bg-white shadow-switcher duration-200 ease-linear',
             {
               '!right-[3px] !translate-x-full': !isInLightMode,
+              // 🔧 CHANGE: Customize dark mode position and animation
             }
           )}
+          // 🔧 CHANGE: Customize toggle indicator styling:
+          // - h-6 w-6: indicator circle size
+          // - bg-white: indicator background color
+          // - shadow-switcher: custom shadow for depth
+          // - duration-200 ease-linear: smooth animation timing
+          // - translate transforms: positioning animation
         >
+          {/* 🎭 THEME ICON: Dynamic icon based on current theme */}
           <ModeIcon isInLightMode={isInLightMode} />
+          {/* 🔧 CHANGE: Replace with custom icons or remove if desired */}
         </span>
       </label>
     </div>
   );
 }; 
 
+/**
+ * 🎭 MODE ICON COMPONENT: Dynamic icon display for theme switcher
+ * 🔧 TEMPLATE USAGE: Shows sun or moon icon based on current theme
+ */
 function ModeIcon({ isInLightMode }: { isInLightMode: boolean }) {
+  // 🎨 ICON STYLING: Base styles for smooth icon transitions
   const iconStyle = 'absolute inset-0 flex items-center justify-center transition-opacity ease-in-out duration-400';
+  // 🔧 CHANGE: Adjust duration-400 for faster/slower icon transitions
+  
   return (
     <>
-      <span className={cn(iconStyle, isInLightMode ? 'opacity-100' : 'opacity-0')}><SunIcon /></span>
-      <span className={cn(iconStyle, !isInLightMode ? 'opacity-100' : 'opacity-0')}><MoonIcon /></span>
+      {/* 🌞 SUN ICON: Visible in light mode */}
+      <span className={cn(iconStyle, isInLightMode ? 'opacity-100' : 'opacity-0')}>
+        {/* 🔧 CHANGE: Customize sun icon visibility animation */}
+        <SunIcon />
+      </span>
+      
+      {/* 🌙 MOON ICON: Visible in dark mode */}
+      <span className={cn(iconStyle, !isInLightMode ? 'opacity-100' : 'opacity-0')}>
+        {/* 🔧 CHANGE: Customize moon icon visibility animation */}
+        <MoonIcon />
+      </span>
     </>
   );
 }
 
+/**
+ * ☀️ SUN ICON: SVG icon for light mode
+ * 🔧 TEMPLATE USAGE: Light theme visual indicator
+ */
 function SunIcon() {
   return (
     <svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      {/* 🔧 CHANGE: Customize sun icon:
+       * - Update width/height for different sizes
+       * - Change fill color from #969AA1
+       * - Replace with custom sun icon path
+       * - Add additional styling or animation
+       */}
       <path
         d='M7.99992 12.6666C10.5772 12.6666 12.6666 10.5772 12.6666 7.99992C12.6666 5.42259 10.5772 3.33325 7.99992 3.33325C5.42259 3.33325 3.33325 5.42259 3.33325 7.99992C3.33325 10.5772 5.42259 12.6666 7.99992 12.6666Z'
         fill='#969AA1'

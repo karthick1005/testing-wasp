@@ -1,112 +1,153 @@
+// 🗄️ DATABASE CONFIGURATION: PostgreSQL database setup
+// 🔧 CHANGE: Update DATABASE_URL environment variable with your database connection string
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "postgresql" // 🔧 MODIFY: Change to "mysql" or "sqlite" if using different database
+  url      = env("DATABASE_URL") // 🔧 CHANGE: Set in .env.server file - format: postgresql://user:password@host:port/database
 }
 
+// 🛠️ PRISMA CLIENT GENERATOR: Auto-generates TypeScript client for database operations
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client-js" // 📦 Generates type-safe database client
 }
 
+// 👤 USER MODEL: Core user entity with authentication and subscription data
 model User {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
+  // 🆔 UNIQUE IDENTIFIERS: Primary key and unique fields
+  id                        String          @id @default(uuid()) // 🔑 Primary key - auto-generated UUID
+  createdAt                 DateTime        @default(now()) // 📅 User registration timestamp
 
-  email                     String?         @unique
-  username                  String?         @unique
-  isAdmin                   Boolean         @default(false)
+  // 🔐 AUTHENTICATION FIELDS: Login credentials and user identification
+  email                     String?         @unique // 📧 User email address (nullable for social auth)
+  username                  String?         @unique // 👤 Username (nullable, optional field)
+  isAdmin                   Boolean         @default(false) // 🔧 MODIFY: Admin privileges flag - customize admin logic
 
-  paymentProcessorUserId    String?         @unique
-  lemonSqueezyCustomerPortalUrl String?     // You can delete this if you're not using Lemon Squeezy as your payments processor.
-  subscriptionStatus        String?         // 'active', 'cancel_at_period_end', 'past_due', 'deleted'
-  subscriptionPlan          String?         // 'hobby', 'pro'
-  datePaid                  DateTime?
-  credits                   Int             @default(3)
+  // 💳 PAYMENT & SUBSCRIPTION DATA: Billing and subscription management
+  paymentProcessorUserId    String?         @unique // 🔧 CHANGE: External payment provider customer ID (Stripe/LemonSqueezy)
+  lemonSqueezyCustomerPortalUrl String?     // 🔧 MODIFY: LemonSqueezy portal URL - delete if not using LemonSqueezy
+  subscriptionStatus        String?         // 🔧 MODIFY: Payment status - 'active', 'cancel_at_period_end', 'past_due', 'deleted'
+  subscriptionPlan          String?         // 🔧 MODIFY: Plan type - customize with your subscription tiers (e.g., 'basic', 'pro', 'enterprise')
+  datePaid                  DateTime?       // 📅 Last payment date
+  credits                   Int             @default(3) // 🔧 MODIFY: User credits/usage allowance - customize default amount
 
-  gptResponses              GptResponse[]
-  contactFormMessages       ContactFormMessage[]
-  tasks                     Task[]
-  files                     File[]
+  // 🔗 RELATIONSHIPS: Connected data entities
+  gptResponses              GptResponse[]    // 🤖 AI responses generated for this user
+  contactFormMessages       ContactFormMessage[] // 💬 Messages sent by this user
+  tasks                     Task[]          // 📝 Tasks created by this user
+  files                     File[]          // 📁 Files uploaded by this user
 }
 
+// 🤖 GPT RESPONSE MODEL: Store AI-generated responses and chat history
 model GptResponse {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
+  // 🆔 RECORD IDENTIFICATION: Primary key and timestamps
+  id                        String          @id @default(uuid()) // 🔑 Primary key - auto-generated UUID
+  createdAt                 DateTime        @default(now()) // 📅 Response creation timestamp
+  updatedAt                 DateTime        @updatedAt // 🔄 Last modification timestamp
 
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
+  // 👤 USER RELATIONSHIP: Links response to specific user
+  user                      User            @relation(fields: [userId], references: [id]) // 🔗 User who received this response
+  userId                    String          // 🔑 Foreign key to User table
 
-  content                   String
+  // 📝 RESPONSE DATA: AI-generated content
+  content                   String          // 🔧 MODIFY: AI response text - consider length limits for your use case
 }
 
+// 📝 TASK MODEL: User task management and todo functionality
 model Task {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
+  // 🆔 RECORD IDENTIFICATION: Primary key and creation timestamp
+  id                        String          @id @default(uuid()) // 🔑 Primary key - auto-generated UUID
+  createdAt                 DateTime        @default(now()) // 📅 Task creation timestamp
 
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
+  // 👤 USER RELATIONSHIP: Links task to specific user
+  user                      User            @relation(fields: [userId], references: [id]) // 🔗 User who owns this task
+  userId                    String          // 🔑 Foreign key to User table
 
-  description               String
-  time                      String          @default("1")
-  isDone                    Boolean         @default(false)
+  // 📋 TASK DATA: Task information and status
+  description               String          // 🔧 MODIFY: Task description - consider length limits
+  time                      String          @default("1") // 🔧 MODIFY: Time estimate or duration - customize format
+  isDone                    Boolean         @default(false) // ✅ Task completion status
 }
 
+// 📁 FILE MODEL: File upload and storage management
 model File {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
+  // 🆔 RECORD IDENTIFICATION: Primary key and creation timestamp
+  id                        String          @id @default(uuid()) // 🔑 Primary key - auto-generated UUID
+  createdAt                 DateTime        @default(now()) // 📅 File upload timestamp
 
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
+  // 👤 USER RELATIONSHIP: Links file to specific user
+  user                      User            @relation(fields: [userId], references: [id]) // 🔗 User who uploaded this file
+  userId                    String          // 🔑 Foreign key to User table
 
-  name                      String
-  type                      String
-  key                       String
-  uploadUrl                 String
+  // 📄 FILE METADATA: File information and storage details
+  name                      String          // 🔧 MODIFY: Original filename - consider sanitization
+  type                      String          // 📋 File MIME type (e.g., 'image/jpeg', 'application/pdf')
+  key                       String          // 🔑 Storage key/path - unique identifier in storage system (S3, etc.)
+  uploadUrl                 String          // 🔗 Direct access URL to file - may be signed/temporary URL
 }
 
+// 📊 DAILY STATS MODEL: Application analytics and metrics tracking
 model DailyStats {
-  id                               Int             @id @default(autoincrement())
-  date                             DateTime        @default(now()) @unique
+  // 🆔 RECORD IDENTIFICATION: Auto-increment ID and unique date constraint
+  id                               Int             @id @default(autoincrement()) // 🔑 Primary key - auto-increment integer
+  date                             DateTime        @default(now()) @unique // 📅 Unique date for stats (one record per day)
 
-  totalViews                       Int             @default(0)
-  prevDayViewsChangePercent        String          @default("0")
-  userCount                        Int             @default(0)
-  paidUserCount                    Int             @default(0)
-  userDelta                        Int             @default(0)
-  paidUserDelta                    Int             @default(0)
-  totalRevenue                     Float           @default(0)
-  totalProfit                      Float           @default(0)
+  // 👀 PAGE VIEW METRICS: Website traffic analytics
+  totalViews                       Int             @default(0) // 🔧 TRACK: Total page views for the day
+  prevDayViewsChangePercent        String          @default("0") // 📈 Percentage change from previous day
 
-  sources                          PageViewSource[]
+  // 👥 USER METRICS: User registration and subscription analytics
+  userCount                        Int             @default(0) // 🔧 TRACK: Total registered users
+  paidUserCount                    Int             @default(0) // 🔧 TRACK: Users with active subscriptions
+  userDelta                        Int             @default(0) // 📈 New user registrations for the day
+  paidUserDelta                    Int             @default(0) // 💰 New paid subscriptions for the day
+
+  // 💰 REVENUE METRICS: Financial performance tracking
+  totalRevenue                     Float           @default(0) // 🔧 TRACK: Total revenue generated
+  totalProfit                      Float           @default(0) // 🔧 TRACK: Profit after expenses (revenue - costs)
+
+  // 🔗 RELATIONSHIPS: Connected analytics data
+  sources                          PageViewSource[] // 📊 Traffic sources breakdown (referrers, direct, etc.)
 }
 
+// 🌐 PAGE VIEW SOURCE MODEL: Traffic source analytics (referrers, search engines, etc.)
 model PageViewSource {
-  @@id([date, name])
-  name                     String
-  date                     DateTime        @default(now())
+  // 🆔 COMPOSITE PRIMARY KEY: Date + source name combination
+  @@id([date, name]) // 🔑 Composite primary key - prevents duplicate sources per day
+  
+  // 📊 SOURCE IDENTIFICATION: Traffic source details
+  name                     String           // 🔧 TRACK: Source name (e.g., "google", "direct", "facebook", "twitter")
+  date                     DateTime        @default(now()) // 📅 Date for this source's statistics
 
-  dailyStats               DailyStats?     @relation(fields: [dailyStatsId], references: [id])
-  dailyStatsId             Int?
+  // 🔗 ANALYTICS RELATIONSHIP: Links to daily stats
+  dailyStats               DailyStats?     @relation(fields: [dailyStatsId], references: [id]) // 🔗 Parent daily statistics record
+  dailyStatsId             Int?            // 🔑 Foreign key to DailyStats (nullable)
 
-  visitors                 Int
+  // 👥 VISITOR METRICS: Traffic volume from this source
+  visitors                 Int             // 🔧 TRACK: Number of unique visitors from this source
 }
 
+// 📋 LOGS MODEL: Application logging and debugging information
 model Logs {
-  id                       Int             @id @default(autoincrement())
-  createdAt                DateTime        @default(now())
+  // 🆔 RECORD IDENTIFICATION: Auto-increment ID and timestamp
+  id                       Int             @id @default(autoincrement()) // 🔑 Primary key - auto-increment integer
+  createdAt                DateTime        @default(now()) // 📅 Log entry timestamp
 
-  message                  String
-  level                    String
+  // 📝 LOG DATA: Log message and severity level
+  message                  String          // 🔧 MODIFY: Log message content - consider length limits for large messages
+  level                    String          // 🔧 TRACK: Log level (e.g., "info", "warn", "error", "debug")
 }
 
+// 💬 CONTACT FORM MESSAGE MODEL: User-to-admin communication system
 model ContactFormMessage {
-  id                        String          @id @default(uuid())
-  createdAt                 DateTime        @default(now())
+  // 🆔 RECORD IDENTIFICATION: Primary key and creation timestamp
+  id                        String          @id @default(uuid()) // 🔑 Primary key - auto-generated UUID
+  createdAt                 DateTime        @default(now()) // 📅 Message submission timestamp
 
-  user                      User            @relation(fields: [userId], references: [id])
-  userId                    String
+  // 👤 USER RELATIONSHIP: Links message to specific user
+  user                      User            @relation(fields: [userId], references: [id]) // 🔗 User who sent this message
+  userId                    String          // 🔑 Foreign key to User table
 
-  content                   String
-  isRead                    Boolean         @default(false)
-  repliedAt                 DateTime?
+  // 💬 MESSAGE DATA: Communication content and status
+  content                   String          // 🔧 MODIFY: Message content - consider length limits and sanitization
+  isRead                    Boolean         @default(false) // 📖 Admin read status - helps track unread messages
+  repliedAt                 DateTime?       // 📅 Admin reply timestamp (nullable - null if not replied yet)
 }
