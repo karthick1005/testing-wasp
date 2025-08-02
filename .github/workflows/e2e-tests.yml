@@ -149,13 +149,13 @@ jobs:
           echo "Listing all folders and files recursively (including hidden):"
           ls -aR
       - name: (client) Build
-        working-directory: ./template/./.wasp/build/web-app
+        working-directory: ./template/app/.wasp/build/web-app
         run: |
           REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
      
       - name: (client) Prepare the Dockerfile
         shell: bash
-        working-directory: ./template/./.wasp/build/web-app
+        working-directory: ./template/app/.wasp/build/web-app
         run: |
           echo "FROM pierrezemb/gostatic" > Dockerfile
           echo "CMD [\"-fallback\", \"index.html\", \"-enable-logging\"]" >> Dockerfile
@@ -166,9 +166,9 @@ jobs:
 
         with:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
-          context: ./template/./app/.wasp/build
+          context: ./template/app/.wasp/build
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
-          file: ./template/./app/.wasp/build/Dockerfile
+          file: ./template/app/.wasp/build/Dockerfile
           push: true
           tags: ${{ steps.meta-server.outputs.tags }}
           labels: ${{ steps.meta-server.outputs.labels }}
