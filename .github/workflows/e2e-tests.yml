@@ -131,6 +131,7 @@ jobs:
 
       - name: Install root npm dependencies
         run: |
+          ls
           cd ./template/app
           npm install
 
