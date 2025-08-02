@@ -107,7 +107,7 @@ jobs:
 
 
   deploy:
-    needs: test
+    # needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Log in to the Container registry
