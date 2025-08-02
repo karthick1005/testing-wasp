@@ -161,6 +161,8 @@ jobs:
           echo "CMD [\"-fallback\", \"index.html\", \"-enable-logging\"]" >> Dockerfile
           echo "COPY ./build /srv/http" >> Dockerfile
 
+      - name: Echo owner
+        run: echo "Repo owner is ${{ github.repository_owner }}"
       - name: (server) Build and push Docker image
         uses: docker/build-push-action@v6
 
@@ -177,9 +179,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
-          context: ./template/./app/.wasp/build/web-app
+          context: ./template/app/.wasp/build/web-app
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
-          file: ./template/./app/.wasp/build/web-app/Dockerfile
+          file: ./template/app/.wasp/build/web-app/Dockerfile
           push: true
           tags: ${{ steps.meta-client.outputs.tags }}
           labels: ${{ steps.meta-client.outputs.labels }}
