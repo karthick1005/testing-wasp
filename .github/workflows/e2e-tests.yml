@@ -130,32 +130,32 @@ jobs:
           images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ env.CLIENT_APP_NAME }}
 
       - name: Install root npm dependencies
+        working-directory: ./template/app
         run: |
-          ls
-          cd ./template/app
           npm install
 
       - name: Build Wasp app (generates .wasp/build and its package.json)
         shell: bash
+        working-directory: ./template/app
         run: |
-          cd ./template/app
           wasp build
 
       - name: (client) Build
+        working-directory: ./template/./.wasp/build/web-app
         run: |
-          cd ./template/./.wasp/build/web-app
           REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
 
       - name: (client) Prepare the Dockerfile
         shell: bash
+        working-directory: ./template/./.wasp/build/web-app
         run: |
-          cd ./template/./.wasp/build/web-app
           echo "FROM pierrezemb/gostatic" > Dockerfile
           echo "CMD [\"-fallback\", \"index.html\", \"-enable-logging\"]" >> Dockerfile
           echo "COPY ./build /srv/http" >> Dockerfile
 
       - name: (server) Build and push Docker image
         uses: docker/build-push-action@v6
+        
         with:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
           context: ./template/./app/.wasp/build
