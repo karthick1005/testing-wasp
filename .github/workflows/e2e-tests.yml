@@ -172,7 +172,7 @@ jobs:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
           file: ./template/app/.wasp/build/Dockerfile
           push: true
-          tags: ${{ steps.meta-server.outputs.tags }}
+          tags: ghcr.io/karthick1005/pokemon-server:latest
           labels: ${{ steps.meta-server.outputs.labels }}
 
       - name: (client) Build and push Docker image
@@ -183,7 +183,7 @@ jobs:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
           file: ./template/app/.wasp/build/web-app/Dockerfile
           push: true
-          tags: ${{ steps.meta-client.outputs.tags }}
+         tags: ghcr.io/karthick1005/pokemon-client:latest
           labels: ${{ steps.meta-client.outputs.labels }}
 
       # You can get the webhook URLs from the Coolify dashboard
