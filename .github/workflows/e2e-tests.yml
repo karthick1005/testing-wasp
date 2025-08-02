@@ -183,7 +183,7 @@ jobs:
           file: ./template/app/.wasp/build/web-app/Dockerfile
           push: true
           tags: ghcr.io/karthick1005/pokemon-client:latest
-          labels: ${{ steps.meta-client.outputs.labels }}
+          # labels: ${{ steps.meta-client.outputs.labels }}
 
       # You can get the webhook URLs from the Coolify dashboard
       # Put them in the repository secrets under CLIENT_COOLIFY_WEBHOOK and SERVER_COOLIFY_WEBHOOK
