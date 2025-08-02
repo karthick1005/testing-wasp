@@ -143,7 +143,7 @@ jobs:
         run: |
           wasp build
       - name: List all folders and files
-        working-directory: ./template
+        working-directory: ./
         run: |
           echo "Current directory: $(pwd)"
           echo "Listing all folders and files recursively:"
