@@ -142,12 +142,12 @@ jobs:
         working-directory: ./template/app
         run: |
           wasp build
-      - name: List all folders and files
+      - name: List all folders and files (including hidden)
         working-directory: ./
         run: |
           echo "Current directory: $(pwd)"
-          echo "Listing all folders and files recursively:"
-          ls -R
+          echo "Listing all folders and files recursively (including hidden):"
+          ls -aR
       - name: (client) Build
         working-directory: ./template/./.wasp/build/web-app
         run: |
