@@ -142,17 +142,17 @@ jobs:
         working-directory: ./template/app
         run: |
           wasp build
-
-      - name: (client) Build
-        working-directory: ./template/./.wasp/build/web-app
-        run: |
-          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
       - name: List all folders and files
         working-directory: ./template
         run: |
           echo "Current directory: $(pwd)"
           echo "Listing all folders and files recursively:"
           ls -R
+      - name: (client) Build
+        working-directory: ./template/./.wasp/build/web-app
+        run: |
+          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
+     
       - name: (client) Prepare the Dockerfile
         shell: bash
         working-directory: ./template/./.wasp/build/web-app
