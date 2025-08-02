@@ -172,8 +172,8 @@ jobs:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
           file: ./template/app/.wasp/build/Dockerfile
           push: true
-          tags: ghcr.io/karthick1005/pokemon-server:latest
-          labels: ${{ steps.meta-server.outputs.labels }}
+          tags: ghcr.io/karthick1005/pokemon-server-new:latest
+          # labels: ${{ steps.meta-server.outputs.labels }}
 
       - name: (client) Build and push Docker image
         uses: docker/build-push-action@v6
