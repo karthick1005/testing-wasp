@@ -84,17 +84,18 @@ jobs:
 
       - name: '[e2e-tests] Run Playwright tests'
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          STRIPE_API_KEY: ${{ secrets.STRIPE_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          OPENAI_API_KEY: dummy-key-for-testing
+          STRIPE_API_KEY: dummy-stripe-key
+          STRIPE_WEBHOOK_SECRET: dummy-webhook-secret
           STRIPE_CUSTOMER_PORTAL_URL: https://billing.stripe.com/p/login/test_8wM8x17JN7DT4zC000
-          PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID: ${{ secrets.STRIPE_HOBBY_SUBSCRIPTION_PRICE_ID }}
-          PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID: ${{ secrets.STRIPE_PRO_SUBSCRIPTION_PRICE_ID }}
-          PAYMENTS_CREDITS_10_PLAN_ID: ${{ secrets.STRIPE_CREDITS_PRICE_ID }}
+          PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID: dummy-hobby-plan
+          PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID: dummy-pro-plan
+          PAYMENTS_CREDITS_10_PLAN_ID: dummy-credits-plan
           SKIP_EMAIL_VERIFICATION_IN_DEV: true
           REACT_APP_GOOGLE_ANALYTICS_ID: G-H3LSJCK95H
         working-directory: ./template/e2e-tests
         run: npm run e2e:playwright
+
 
   deploy:
     needs: test
