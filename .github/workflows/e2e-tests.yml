@@ -117,6 +117,11 @@ jobs:
           username: ${{ env.DOCKER_REGISTRY_USERNAME }}
           password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
 
+      - name: Debug repo structure
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -R
+
       - name: (server) Extract metadata for Docker
         id: meta-server
         uses: docker/metadata-action@v5
@@ -155,7 +160,7 @@ jobs:
 
       - name: (server) Build and push Docker image
         uses: docker/build-push-action@v6
-        
+
         with:
           # REMOVE the `app` bit from the path if your app is not in the `app` folder
           context: ./template/./app/.wasp/build
