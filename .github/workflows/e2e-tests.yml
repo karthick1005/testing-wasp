@@ -18,9 +18,8 @@ env:
   # Put your client app name here
   CLIENT_APP_NAME: "pokemon-client"
   DOCKER_REGISTRY: "ghcr.io"
-  DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
-  # This secret is provided by GitHub by default and is used to authenticate with the Container registry
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  DOCKER_REGISTRY_USERNAME: karthick1005
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.GHCR_PAT }}
 
 jobs:
   # test:
