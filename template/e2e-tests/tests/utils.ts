@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { type Page, test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 
 export type User = {
@@ -13,11 +13,13 @@ export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
   await page.goto('/');
 
   await page.getByRole('link', { name: 'Log in' }).click();
+
   await page.waitForURL('**/login', {
     waitUntil: 'domcontentloaded',
   });
 
   await page.fill('input[name="email"]', user.email);
+
   await page.fill('input[name="password"]', DEFAULT_PASSWORD);
 
   const clickLogin = page.click('button:has-text("Log in")');
@@ -37,7 +39,7 @@ export const logUserIn = async ({ page, user }: { page: Page; user: User }) => {
 
 export const signUserUp = async ({ page, user }: { page: Page; user: User }) => {
   await page.goto('/');
-
+  
   await page.evaluate(() => {
     try {
       const sessionId = localStorage.getItem('wasp:sessionId');
@@ -57,6 +59,7 @@ export const signUserUp = async ({ page, user }: { page: Page; user: User }) => 
   await page.click('text="go to signup"');
 
   await page.fill('input[name="email"]', user.email);
+
   await page.fill('input[name="password"]', DEFAULT_PASSWORD);
 
   await page.click('button:has-text("Sign up")');
