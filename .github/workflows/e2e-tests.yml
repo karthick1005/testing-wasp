@@ -12,6 +12,15 @@ on:
 env:
   WASP_TELEMETRY_DISABLE: 1
   WASP_VERSION: 0.17.0
+  SERVER_APP_NAME: "pokemon-server"
+  # After you know the server URL, put the URL here
+  SERVER_APP_URL: "http://api.34.136.254.179.sslip.io"
+  # Put your client app name here
+  CLIENT_APP_NAME: "pokemon-client"
+  DOCKER_REGISTRY: "ghcr.io"
+  DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
+  # This secret is provided by GitHub by default and is used to authenticate with the Container registry
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   test:
@@ -101,20 +110,48 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: SSH to GCP VM and deploy app
-        uses: appleboy/ssh-action@v0.1.8
+      - name: (client) Build
+        run: |
+          cd ./template/./.wasp/build/web-app
+          REACT_APP_API_URL=${{ env.SERVER_APP_URL }} REACT_APP_GOOGLE_ANALYTICS_ID=G-QJ5ZFJ024D npm run build
+
+      - name: (client) Prepare the Dockerfile
+        shell: bash
+        run: |
+          cd ./template/./.wasp/build/web-app
+          echo "FROM pierrezemb/gostatic" > Dockerfile
+          echo "CMD [\"-fallback\", \"index.html\", \"-enable-logging\"]" >> Dockerfile
+          echo "COPY ./build /srv/http" >> Dockerfile
+
+      - name: (server) Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USERNAME }}
-          key: ${{ secrets.GCP_VM_SSH_KEY }}
-          script: |
-            cd testing/template/
-            git pull origin main
-            cd app/
+          # REMOVE the `app` bit from the path if your app is not in the `app` folder
+          context: ./template/./app/.wasp/build
+          # REMOVE the `app` bit from the path if your app is not in the `app` folder
+          file: ./template/./app/.wasp/build/Dockerfile
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }}
+          labels: ${{ steps.meta-server.outputs.labels }}
 
-            export PATH=$PATH:/home/fusionprixofficial/.local/bin:/home/fusionprixofficial/.nvm/versions/node/v20.19.2/bin
+      - name: (client) Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          # REMOVE the `app` bit from the path if your app is not in the `app` folder
+          context: ./template/./app/.wasp/build/web-app
+          # REMOVE the `app` bit from the path if your app is not in the `app` folder
+          file: ./template/./app/.wasp/build/web-app/Dockerfile
+          push: true
+          tags: ${{ steps.meta-client.outputs.tags }}
+          labels: ${{ steps.meta-client.outputs.labels }}
 
-            which node
-            which wasp
-
-            wasp start
+      # You can get the webhook URLs from the Coolify dashboard
+      # Put them in the repository secrets under CLIENT_COOLIFY_WEBHOOK and SERVER_COOLIFY_WEBHOOK
+      - name: Trigger Deploy Webhooks
+        env:
+          CLIENT_COOLIFY_WEBHOOK: ${{ secrets.CLIENT_COOLIFY_WEBHOOK }}
+          SERVER_COOLIFY_WEBHOOK: ${{ secrets.SERVER_COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl "${{ env.CLIENT_COOLIFY_WEBHOOK }}" --header 'Authorization: Bearer ${{ env.COOLIFY_TOKEN }}'
+          curl "${{ env.SERVER_COOLIFY_WEBHOOK }}" --header 'Authorization: Bearer ${{ env.COOLIFY_TOKEN }}'
