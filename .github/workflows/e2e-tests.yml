@@ -103,13 +103,8 @@ jobs:
           SKIP_EMAIL_VERIFICATION_IN_DEV: true
           REACT_APP_GOOGLE_ANALYTICS_ID: G-H3LSJCK95H
         working-directory: ./template/e2e-tests
-        run: npm run e2e:playwright
-
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
+        run: npm run e2e:Playwright
+        
       - name: (client) Build
         run: |
           cd ./template/./.wasp/build/web-app
