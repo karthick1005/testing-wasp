@@ -118,10 +118,6 @@ jobs:
           password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
       - name: Checkout the repo
         uses: actions/checkout@v4
-      - name: Debug repo structure
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -R
 
       - name: (server) Extract metadata for Docker
         id: meta-server
@@ -139,7 +135,8 @@ jobs:
         working-directory: ./template/app
         run: |
           npm install
-
+      - name: Install Wasp
+        run: curl -sSL https://get.wasp.sh/installer.sh | sh -s -- -v ${{ env.WASP_VERSION }}
       - name: Build Wasp app (generates .wasp/build and its package.json)
         shell: bash
         working-directory: ./template/app
