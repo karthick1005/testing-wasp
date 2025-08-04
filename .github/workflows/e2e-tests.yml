@@ -136,6 +136,12 @@ jobs:
           npm install
       - name: Install Wasp
         run: curl -sSL https://get.wasp.sh/installer.sh | sh -s -- -v ${{ env.WASP_VERSION }}
+      - name: Create Wasp Db migration (generates .wasp/build and its package.json)
+        shell: bash
+        working-directory: ./template/ap
+        run: |
+          wasp db migrate-dev
+        
       - name: Build Wasp app (generates .wasp/build and its package.json)
         shell: bash
         working-directory: ./template/app
