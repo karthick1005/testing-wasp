@@ -1,4 +1,4 @@
-/template/app/migrations
+# /template/app/migrations
 /template/app/package-lock.json
 .DS_Store
 

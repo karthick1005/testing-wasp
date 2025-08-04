@@ -10,6 +10,10 @@
 // Full TypeScript configurability is coming very soon :)
 {
   "compilerOptions": {
+    "typeRoots": [
+      "node_modules/@testing-library",
+      "node_modules/@types"
+    ],
     "module": "esnext",
     "composite": true,
     "target": "esnext",
