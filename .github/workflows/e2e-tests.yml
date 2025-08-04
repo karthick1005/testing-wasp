@@ -138,7 +138,7 @@ jobs:
         run: curl -sSL https://get.wasp.sh/installer.sh | sh -s -- -v ${{ env.WASP_VERSION }}
       - name: Create Wasp Db migration (generates .wasp/build and its package.json)
         shell: bash
-        working-directory: ./template/ap
+        working-directory: ./template/app
         run: |
           wasp db migrate-dev
         
