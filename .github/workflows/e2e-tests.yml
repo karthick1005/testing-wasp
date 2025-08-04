@@ -140,7 +140,7 @@ jobs:
         shell: bash
         working-directory: ./template/app
         run: |
-          wasp db migrate-dev
+          wasp db migrate
         
       - name: Build Wasp app (generates .wasp/build and its package.json)
         shell: bash
