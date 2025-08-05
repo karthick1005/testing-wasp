@@ -69,7 +69,7 @@ app OpenSaaS {
       // }
     },
     onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/demo-app",
+    onAuthSucceededRedirectTo: "/apps",
   },
 
   db: {
@@ -146,6 +146,31 @@ action updateIsUserAdminById {
   entities: [User]
 }
 //#endregion
+
+//#region Apps Dashboard
+route AppsRoute { path: "/apps", to: AppsPage }
+page AppsPage {
+  component: import AppsPage from "@src/apps/AppsPage"
+}
+
+route MyFirstAppRoute { path: "/my-first-app", to: MyFirstAppPage }
+page MyFirstAppPage {
+  component: import MyFirstApp from "@src/apps/my-first-app/MyFirstApp"
+}
+
+route CalculatorRoute { path: "/calculator", to: CalculatorPage }
+page CalculatorPage {
+  authRequired: true,
+  component: import Calculator from "@src/apps/calculator/Calculator"
+}
+
+route TestWeatherRoute { path: "/weather", to: TestWeatherPage }
+page TestWeatherPage {
+  authRequired: true,
+  component: import WeatherApp from "@src/apps/test-weather/WeatherApp"
+}
+
+//#endregion 
 
 //#region Demo AI App
 route DemoAppRoute { path: "/demo-app", to: DemoAppPage }

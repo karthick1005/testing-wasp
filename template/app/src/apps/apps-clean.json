@@ -1,0 +1,24 @@
+[
+  {
+    "id": "my-first-app",
+    "name": "My First App",
+    "description": "A simple example app to get started",
+    "icon": "🚀",
+    "path": "/my-first-app",
+    "component": "MyFirstApp",
+    "authRequired": false,
+    "category": "tools",
+    "isActive": true
+  },
+  {
+    "id": "calculator",
+    "name": "Simple Calculator",
+    "description": "A basic calculator for everyday calculations",
+    "icon": "🧮",
+    "path": "/calculator",
+    "component": "Calculator",
+    "authRequired": true,
+    "category": "tools",
+    "isActive": true
+  }
+]
