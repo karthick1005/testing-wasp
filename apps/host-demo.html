@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host App - Lazy Loading Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .host-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .host-content {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .dashboard-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .load-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .load-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .load-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .unload-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .unload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .remote-app-container {
+            background: white;
+            border-radius: 12px;
+            margin-top: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 200px;
+            border: 2px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .remote-app-container.loaded {
+            border: 2px solid #667eea;
+            background: transparent;
+        }
+        
+        .status-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-info h3 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        
+        .status-item {
+            margin-bottom: 5px;
+            color: #0c5460;
+        }
+        
+        .demo-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .demo-info h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .demo-info p {
+            color: #856404;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="host-header">
+        <h1>🏠 Host Application Dashboard</h1>
+        <p>Demonstrating Module Federation Lazy Loading</p>
+    </div>
+    
+    <div class="host-content">
+        <div class="demo-info">
+            <h3>📋 Demo Instructions</h3>
+            <p>
+                This demonstrates lazy loading a React app using Webpack Module Federation. 
+                Click "Load Remote App" to dynamically import and render the demo React app 
+                without increasing this host app's bundle size. The remote app runs on port 3001 
+                and is loaded only when needed.
+            </p>
+        </div>
+        
+        <div class="dashboard-section">
+            <h2>Dashboard Controls</h2>
+            <button id="loadBtn" class="load-button">
+                Load Remote App
+            </button>
+            <button id="unloadBtn" class="unload-button" style="display: none;">
+                Unload Remote App
+            </button>
+            
+            <div id="loading" class="loading">
+                Loading remote application...
+            </div>
+        </div>
+        
+        <div class="status-info">
+            <h3>📊 Loading Status</h3>
+            <div class="status-item">Remote App Status: <span id="appStatus">Not Loaded</span></div>
+            <div class="status-item">Load Time: <span id="loadTime">-</span></div>
+            <div class="status-item">Bundle Impact: <span id="bundleImpact">Zero (Lazy Loaded)</span></div>
+            <div class="status-item">Federation URL: <span id="federationUrl">http://localhost:3001/remoteEntry.js</span></div>
+        </div>
+        
+        <div id="remoteAppContainer" class="remote-app-container">
+            Remote app will be loaded here...
+        </div>
+    </div>
+
+    <script>
+        let isLoaded = false;
+        let RemoteApp = null;
+        
+        const loadBtn = document.getElementById('loadBtn');
+        const unloadBtn = document.getElementById('unloadBtn');
+        const loading = document.getElementById('loading');
+        const container = document.getElementById('remoteAppContainer');
+        const appStatus = document.getElementById('appStatus');
+        const loadTime = document.getElementById('loadTime');
+        
+        // Function to dynamically load React and ReactDOM
+        function loadReact() {
+            return new Promise((resolve) => {
+                if (window.React && window.ReactDOM) {
+                    resolve();
+                    return;
+                }
+                
+                // Load React
+                const reactScript = document.createElement('script');
+                reactScript.src = 'https://unpkg.com/react@18/umd/react.development.js';
+                reactScript.onload = () => {
+                    // Load ReactDOM
+                    const reactDOMScript = document.createElement('script');
+                    reactDOMScript.src = 'https://unpkg.com/react-dom@18/umd/react-dom.development.js';
+                    reactDOMScript.onload = resolve;
+                    document.head.appendChild(reactDOMScript);
+                };
+                document.head.appendChild(reactScript);
+            });
+        }
+        
+        // Function to load the remote module
+        async function loadRemoteApp() {
+            if (isLoaded) return;
+            
+            const startTime = Date.now();
+            loadBtn.disabled = true;
+            loading.style.display = 'block';
+            appStatus.textContent = 'Loading...';
+            
+            try {
+                // First ensure React is loaded
+                await loadReact();
+                
+                // Load the remote entry
+                const script = document.createElement('script');
+                script.src = 'http://localhost:3001/remoteEntry.js';
+                
+                script.onload = async () => {
+                    try {
+                        // Initialize the container
+                        await __webpack_init_sharing__('default');
+                        const container = window.demoReactApp;
+                        await container.init(__webpack_share_scopes__.default);
+                        
+                        // Get the remote module
+                        const factory = await container.get('./App');
+                        RemoteApp = factory();
+                        
+                        // Create React element and render
+                        const element = React.createElement(RemoteApp.default);
+                        const root = ReactDOM.createRoot(document.getElementById('remoteAppContainer'));
+                        root.render(element);
+                        
+                        // Update UI
+                        const endTime = Date.now();
+                        const loadTimeMs = endTime - startTime;
+                        
+                        isLoaded = true;
+                        loading.style.display = 'none';
+                        loadBtn.style.display = 'none';
+                        unloadBtn.style.display = 'inline-block';
+                        container.classList.add('loaded');
+                        appStatus.textContent = 'Loaded Successfully';
+                        loadTime.textContent = `${loadTimeMs}ms`;
+                        
+                    } catch (error) {
+                        console.error('Error loading remote app:', error);
+                        appStatus.textContent = 'Load Failed';
+                        loading.style.display = 'none';
+                        loadBtn.disabled = false;
+                        
+                        // Fallback: Load as iframe
+                        container.innerHTML = `
+                            <iframe 
+                                src="http://localhost:3001" 
+                                width="100%" 
+                                height="600px" 
+                                frameborder="0"
+                                style="border-radius: 8px;"
+                            ></iframe>
+                        `;
+                        container.classList.add('loaded');
+                        appStatus.textContent = 'Loaded as iframe (fallback)';
+                        isLoaded = true;
+                        loadBtn.style.display = 'none';
+                        unloadBtn.style.display = 'inline-block';
+                    }
+                };
+                
+                script.onerror = () => {
+                    console.error('Failed to load remote entry script');
+                    loading.style.display = 'none';
+                    loadBtn.disabled = false;
+                    appStatus.textContent = 'Connection Failed - Is the remote app running on port 3001?';
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                loadBtn.disabled = false;
+                appStatus.textContent = 'Load Failed';
+            }
+        }
+        
+        // Function to unload the remote app
+        function unloadRemoteApp() {
+            if (!isLoaded) return;
+            
+            container.innerHTML = 'Remote app will be loaded here...';
+            container.classList.remove('loaded');
+            
+            isLoaded = false;
+            RemoteApp = null;
+            
+            loadBtn.style.display = 'inline-block';
+            loadBtn.disabled = false;
+            unloadBtn.style.display = 'none';
+            appStatus.textContent = 'Unloaded';
+            loadTime.textContent = '-';
+        }
+        
+        // Event listeners
+        loadBtn.addEventListener('click', loadRemoteApp);
+        unloadBtn.addEventListener('click', unloadRemoteApp);
+        
+        // Initialize webpack sharing if not available
+        if (typeof __webpack_init_sharing__ === 'undefined') {
+            window.__webpack_init_sharing__ = () => Promise.resolve();
+            window.__webpack_share_scopes__ = { default: {} };
+        }
+    </script>
+</body>
+</html>

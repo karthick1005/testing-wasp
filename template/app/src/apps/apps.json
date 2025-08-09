@@ -1,5 +1,16 @@
 [
   {
+    "id": "lazy-demo",
+    "name": "Lazy Loaded React App",
+    "description": "Module Federation demonstration with zero bundle impact",
+    "icon": "🚀",
+    "path": "/lazy-demo",
+    "component": "LazyLoadedReactApp",
+    "authRequired": false,
+    "category": "tools",
+    "isActive": true
+  },
+  {
     "id": "my-first-app",
     "name": "My First App",
     "description": "A simple example app to get started",
