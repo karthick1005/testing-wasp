@@ -24,29 +24,22 @@ declare global {
   }
 }
 
-// Dynamic import for the remote component - Multiple fallback strategies
+// Dynamic import for the remote component - Improved Module Federation
 const loadRemoteComponent = async (): Promise<React.ComponentType> => {
   try {
-    console.log('Loading remote component with multiple strategies...');
-    
-    // Strategy 1: Try Module Federation first
-    try {
-      return await loadViaModuleFederation();
-    } catch (mfError) {
-      console.warn('Module Federation failed, trying direct script loading:', mfError);
-    }
-    
-    // Strategy 2: Try direct script loading as fallback
-    return await loadViaDirectScript();
-    
+    console.log('Loading remote component via Module Federation...');
+    return await loadViaModuleFederation();
   } catch (error) {
-    console.error('All loading strategies failed:', error);
-    throw error;
+    console.error('Module Federation loading failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to load remote component: ${errorMessage}`);
   }
 };
 
 // Strategy 1: Module Federation approach with proper React sharing
 const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
+  console.log('Starting Module Federation loading process...');
+  
   // Ensure React is available globally for sharing
   if (typeof window !== 'undefined') {
     (window as any).React = React;
@@ -61,6 +54,7 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
   const existingScript = document.getElementById(scriptId);
   if (existingScript) {
     existingScript.remove();
+    console.log('Removed existing remote script');
   }
 
   // Create and load new script
@@ -69,30 +63,55 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
   script.src = 'http://localhost:3002/remoteEntry.js';
   script.type = 'text/javascript';
   
+  console.log('Loading remote entry script...');
+  
   // Load script with promise
   await new Promise<void>((resolve, reject) => {
-    script.onload = () => resolve();
-    script.onerror = (error) => reject(new Error('Failed to load remote script'));
+    script.onload = () => {
+      console.log('Remote entry script loaded successfully');
+      resolve();
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load remote entry script:', error);
+      reject(new Error('Failed to load remote script - ensure demo app is running on port 3002'));
+    };
     document.head.appendChild(script);
   });
 
-  // Wait for container to be available
+  // Wait for container to be available with better error handling
+  console.log('Waiting for remote container...');
   let attempts = 0;
-  while (!window.demoReactApp && attempts < 20) {
+  const maxAttempts = 30; // Increased from 20
+  
+  while (!window.demoReactApp && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
+    if (attempts % 10 === 0) {
+      console.log(`Still waiting for container... (${attempts}/${maxAttempts})`);
+    }
   }
 
   if (!window.demoReactApp) {
-    throw new Error('Remote container not available');
+    console.error('Remote container not available after', maxAttempts * 100, 'ms');
+    throw new Error('Remote container not available - the demo app may not be running or may have failed to initialize');
   }
 
-  // Initialize webpack sharing scope first
-  if (window.__webpack_init_sharing__) {
-    await window.__webpack_init_sharing__('default');
+  console.log('Remote container found:', window.demoReactApp);
+
+  // Initialize webpack sharing scope
+  try {
+    if (window.__webpack_init_sharing__) {
+      console.log('Initializing webpack sharing...');
+      await window.__webpack_init_sharing__('default');
+    } else {
+      console.warn('__webpack_init_sharing__ not available');
+    }
+  } catch (sharingError) {
+    console.warn('Webpack sharing initialization failed:', sharingError);
   }
 
   // Initialize container with shared React from host
+  console.log('Initializing remote container...');
   await window.demoReactApp.init({
     react: {
       '^18.0.0': {
@@ -107,11 +126,54 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
         loaded: true,
         eager: false
       }
+    },
+    'react-router-dom': {
+      '^6.0.0': {
+        get: () => import('react-router-dom').then(mod => () => mod),
+        loaded: true,
+        eager: false
+      }
     }
   });
 
-  // Get the component
-  const factory = await window.demoReactApp.get('./DemoApp');
+  // Get the component with better error handling
+  console.log('Getting remote component...');
+  let factory;
+  try {
+    // Try the URL sync version first - works with host router and syncs URLs
+    factory = await window.demoReactApp.get('./DemoAppForHostUrlSync');
+    console.log('Successfully loaded DemoAppForHostUrlSync (URL synchronization)');
+  } catch (urlSyncError) {
+    console.error('Failed to get DemoAppForHostUrlSync, trying integrated routing:', urlSyncError);
+    try {
+      // Try the integrated routing version if URL sync fails
+      factory = await window.demoReactApp.get('./DemoAppForHostWithRoutes');
+      console.log('Successfully loaded DemoAppForHostWithRoutes (integrated routing)');
+    } catch (routingError) {
+      console.error('Failed to get DemoAppForHostWithRoutes, trying no-router version:', routingError);
+      try {
+        // Try the router-free version if integrated routing fails
+        factory = await window.demoReactApp.get('./DemoAppForHostNoRouter');
+        console.log('Successfully loaded DemoAppForHostNoRouter (no router conflicts)');
+      } catch (noRouterError) {
+        console.error('Failed to get DemoAppForHostNoRouter, trying DemoAppForHost:', noRouterError);
+        try {
+          factory = await window.demoReactApp.get('./DemoAppForHost');
+          console.log('Successfully loaded DemoAppForHost (with router)');
+        } catch (getError) {
+          console.error('Failed to get DemoAppForHost, trying DemoApp:', getError);
+          try {
+            factory = await window.demoReactApp.get('./DemoApp');
+            console.log('Successfully loaded DemoApp (fallback)');
+          } catch (fallbackError) {
+            console.error('Failed to get any component:', fallbackError);
+            throw new Error('Failed to get any exposed component from remote app');
+          }
+        }
+      }
+    }
+  }
+  
   const module = await factory();
   
   console.log('Module loaded via Federation:', module);
@@ -122,76 +184,20 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
   console.log('Final component:', component);
   
   if (!component || (typeof component !== 'function' && typeof component !== 'object')) {
-    throw new Error(`Invalid component type: ${typeof component}`);
+    throw new Error(`Invalid component type: ${typeof component}. Expected function or object.`);
   }
   
+  console.log('✅ Module Federation loading completed successfully');
   return component;
 };
 
-// Strategy 2: Direct script loading with global exposure
-const loadViaDirectScript = async (): Promise<React.ComponentType> => {
-  console.log('Trying direct script loading...');
-  
-  // Load the standalone build directly
-  const scriptId = 'demo-react-app-standalone';
-  
-  // Remove existing script if any
-  const existingScript = document.getElementById(scriptId);
-  if (existingScript) {
-    existingScript.remove();
-  }
-
-  // Create and load standalone script
-  const script = document.createElement('script');
-  script.id = scriptId;
-  script.src = 'http://localhost:3002/src_standalone_js.js'; // Webpack chunk name
-  script.type = 'text/javascript';
-  
-  // Load script with promise
-  await new Promise<void>((resolve, reject) => {
-    script.onload = () => resolve();
-    script.onerror = (error) => reject(new Error('Failed to load standalone script'));
-    document.head.appendChild(script);
-  });
-
-  // Wait for component to be available globally
-  let attempts = 0;
-  while (!(window as any).DemoReactAppComponent && attempts < 20) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    attempts++;
-  }
-
-  if (!(window as any).DemoReactAppComponent) {
-    throw new Error('Demo component not available globally');
-  }
-
-  // Return a wrapper component that prevents global side effects
-  const WrappedComponent = (props: any) => {
-    const Component = (window as any).DemoReactAppComponent;
-    return React.createElement(Component, props);
-  };
-
-  return WrappedComponent;
-};
-
-// Lazy wrapper component with isolation
+// Lazy wrapper component
 const LazyRemoteComponent = React.lazy(async () => {
   const Component = await loadRemoteComponent();
   
-  // Create a wrapper that prevents the component from accessing global DOM
+  // Create a wrapper that allows proper component rendering
   const IsolatedWrapper = (props: any) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    
-    React.useEffect(() => {
-      // Override any potential document.body access
-      const originalBody = document.body;
-      const originalGetElementById = document.getElementById;
-      
-      // Restore on cleanup
-      return () => {
-        // Restore original methods if they were overridden
-      };
-    }, []);
     
     // Validate that Component is a valid React component
     if (!Component || (typeof Component !== 'function' && typeof Component !== 'object')) {
@@ -208,12 +214,10 @@ const LazyRemoteComponent = React.lazy(async () => {
         ref={containerRef}
         style={{ 
           width: '100%', 
-          height: 'auto',
-          isolation: 'isolate',
-          contain: 'layout style paint'
+          height: 'auto'
         }}
       >
-        <Component {...props} />
+        <Component basePath="/lazy-demo" {...props} />
       </div>
     );
   };
@@ -351,10 +355,25 @@ export default function LazyLoadedReactApp() {
     window.open('http://localhost:3002', '_blank');
   };
 
-  // Check availability on mount
+  // Check availability on mount and auto-load the remote app
   useEffect(() => {
-    checkRemoteAvailability();
+    const initializeRemoteApp = async () => {
+      await checkRemoteAvailability();
+      // Auto-load the remote app when component mounts
+      if (remoteAvailable !== false) {
+        loadRemoteApp();
+      }
+    };
+    
+    initializeRemoteApp();
   }, []);
+
+  // Auto-load when remote becomes available
+  useEffect(() => {
+    if (remoteAvailable === true && !isRemoteAppLoaded && loadStatus.status === 'idle') {
+      loadRemoteApp();
+    }
+  }, [remoteAvailable, isRemoteAppLoaded, loadStatus.status]);
 
   return (
     <div className="space-y-6">
@@ -367,7 +386,7 @@ export default function LazyLoadedReactApp() {
                 🚀 Lazy Loaded React App Demo
               </CardTitle>
               <CardDescription>
-                Demonstrates true Module Federation integration - components become part of the main app but are loaded only when needed
+                Auto-loads and integrates Module Federation components - seamless loading when you visit the page
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -398,29 +417,30 @@ export default function LazyLoadedReactApp() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 mb-4">
-            {!isRemoteAppLoaded ? (
-              <Button 
-                onClick={loadRemoteApp} 
-                disabled={loadStatus.status === 'loading' || !remoteAvailable}
-                className="flex items-center gap-2"
-              >
-                {loadStatus.status === 'loading' ? (
+            {/* Auto-loading - no manual buttons needed */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {loadStatus.status === 'loading' && (
+                <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  '🎯'
-                )}
-                {loadStatus.status === 'loading' ? 'Loading...' : 'Load Remote App'}
-              </Button>
-            ) : (
-              <Button 
-                onClick={unloadRemoteApp}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Unload App
-              </Button>
-            )}
+                  Auto-loading remote app...
+                </>
+              )}
+              {loadStatus.status === 'loaded' && (
+                <>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Remote app loaded successfully
+                  {loadStatus.loadTime && (
+                    <span className="ml-1">({loadStatus.loadTime}ms)</span>
+                  )}
+                </>
+              )}
+              {loadStatus.status === 'error' && (
+                <>
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  Failed to load: {loadStatus.error}
+                </>
+              )}
+            </div>
             
             <Button 
               onClick={openInNewTab}
@@ -507,18 +527,12 @@ export default function LazyLoadedReactApp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="min-h-[400px] rounded-lg border-2 border-dashed border-muted-foreground/25 bg-background">
+          <div className="rounded-lg border border-muted-foreground/25 bg-background overflow-hidden">
             {isRemoteAppLoaded ? (
               <RemoteComponentErrorBoundary onError={handleRemoteError}>
-                <div className="relative overflow-hidden">
-                  {/* Isolated container for remote component */}
-                  <div 
-                    className="p-4 w-full h-auto"
-                    style={{ 
-                      isolation: 'isolate', // CSS isolation
-                      contain: 'layout style paint' // CSS containment
-                    }}
-                  >
+                <div className="relative w-full">
+                  {/* Container for remote component - no isolation to allow proper rendering */}
+                  <div className="w-full">
                     <Suspense fallback={<LoadingFallback />}>
                       <LazyRemoteComponent />
                     </Suspense>
@@ -530,7 +544,7 @@ export default function LazyLoadedReactApp() {
                 <div className="text-center">
                   <div className="text-4xl mb-2">📦</div>
                   <p>Remote component will be integrated here</p>
-                  <p className="text-sm mt-1">Click "Load Remote App" to dynamically import and render</p>
+                  <p className="text-sm mt-1">Auto-loading remote app...</p>
                 </div>
               </div>
             )}
@@ -579,9 +593,11 @@ export default function LazyLoadedReactApp() {
                 <h4 className="font-medium mb-2">🔧 Configuration:</h4>
                 <ul className="space-y-1 text-muted-foreground text-sm list-disc list-inside">
                   <li>Remote entry: localhost:3002/remoteEntry.js</li>
-                  <li>Exposed module: ./DemoApp</li>
-                  <li>Shared: react, react-dom</li>
-                  <li>Singleton mode for React</li>
+                  <li>Primary module: ./DemoAppForHostUrlSync (URL synchronization)</li>
+                  <li>Fallback modules: ./DemoAppForHostWithRoutes, ./DemoAppForHostNoRouter, ./DemoAppForHost, ./DemoApp</li>
+                  <li>Shared: react, react-dom, react-router-dom</li>
+                  <li>Singleton mode for React ecosystem</li>
+                  <li>Enhanced error handling and diagnostics</li>
                 </ul>
               </div>
             </div>

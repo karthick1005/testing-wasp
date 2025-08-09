@@ -47,7 +47,15 @@ module.exports = {
       filename: 'remoteEntry.js',
       exposes: {
         './DemoApp': './src/App.js',
-        './Standalone': './src/standalone.js'
+        './EmbeddedDemoApp': './src/EmbeddedDemoApp.js',
+        './DemoAppWithRouter': './src/AppWithRouter.js',
+        './DemoAppWithBrowserRouter': './src/AppWithBrowserRouter.js',
+        './DemoAppForHost': './src/AppForHost.js',
+        './DemoAppForHostNoRouter': './src/AppForHostNoRouter.js',
+        './DemoAppForHostWithRoutes': './src/AppForHostWithRoutes.js',
+        './DemoAppForHostUrlSync': './src/AppForHostUrlSync.js',
+        './Standalone': './src/standalone.js',
+        './StandaloneWithRouter': './src/standaloneWithRouter.js'
       },
       shared: {
         react: {
@@ -61,6 +69,12 @@ module.exports = {
           strictVersion: false,
           requiredVersion: false,
           eager: false // Don't load eagerly, wait for host
+        },
+        'react-router-dom': {
+          singleton: true,
+          strictVersion: false,
+          requiredVersion: false,
+          eager: false
         }
       }
     }),

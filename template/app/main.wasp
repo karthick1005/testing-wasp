@@ -154,6 +154,7 @@ page AppsPage {
 }
 
 route LazyDemoRoute { path: "/lazy-demo", to: LazyDemoPage }
+route LazyDemoWildcardRoute { path: "/lazy-demo/*", to: LazyDemoPage }
 page LazyDemoPage {
   component: import LazyLoadedReactApp from "@src/apps/lazy-demo/LazyLoadedReactApp"
 }
