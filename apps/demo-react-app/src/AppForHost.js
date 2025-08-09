@@ -8,6 +8,7 @@ import EmbeddedDemoApp from './EmbeddedDemoApp';
 // Create some example components for different routes
 const Dashboard = () => (
   <div style={{ padding: '20px' }}>
+    
     <h1>📊 Dashboard</h1>
     <p>This is the dashboard page of the demo app.</p>
     <div style={{ marginTop: '20px', padding: '15px', background: '#f0f8ff', borderRadius: '8px' }}>

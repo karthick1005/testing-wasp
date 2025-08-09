@@ -148,6 +148,11 @@ const EmbeddedDemoApp = () => {
   return (
     <div className="embedded-demo-app">
       <div className="demo-header">
+        <iframe width="560" height="315"
+  src="https://www.youtube.com/embed/h3h035Eyz5A"
+  title="YouTube video player">
+</iframe>
+
         <h1>🚀 Module Federation Demo</h1>
         <p className="demo-subtitle">
           Embedded React App with Heavy Dependencies (Optimized for Host Integration)
