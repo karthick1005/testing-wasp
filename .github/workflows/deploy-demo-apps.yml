@@ -7,414 +7,171 @@ on:
     paths:
       - 'apps/**'
   workflow_dispatch:
-    inputs:
-      deploy_environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
-      force_deploy:
-        description: 'Force deploy all apps'
-        required: false
-        default: false
-        type: boolean
-
-concurrency:
-  group: deploy-apps-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   DOCKER_REGISTRY: ghcr.io
-  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  NODE_VERSION: "18"
+  COOLIFY_API_URL: "http://34.136.254.179:8000/api"  # Change to your Coolify API URL
   COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-  NODE_VERSION: 18
 
 jobs:
-  detect-changes:
+  detect-changed-apps:
     runs-on: ubuntu-latest
     outputs:
-      changed_apps: ${{ steps.set_outputs.outputs.changed_apps }}
-      any_changes: ${{ steps.set_outputs.outputs.any_changes }}
+      changed_apps: ${{ steps.set_changed_apps.outputs.apps }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Detect changed apps
-        id: set_outputs
+        id: set_changed_apps
         run: |
-          echo "Detecting changed apps..."
-
-          # Get changed files between commits or all if first push or forced deploy
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
-            echo "Force deploy enabled: deploy all apps"
-            changed_apps=$(ls apps)
-          elif [[ "${{ github.event.before }}" == "" || "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
-            echo "First push detected: deploy all apps"
-            changed_apps=$(ls apps)
+          if [[ -z "${{ github.event.before }}" || "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+            git fetch --depth=2 origin main
+            BASE_SHA=$(git rev-parse HEAD^)
           else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-            echo "Changed files:"
-            echo "$CHANGED_FILES"
-
-            # Extract top-level directories inside apps/ that have changes
-            changed_apps=$(echo "$CHANGED_FILES" | grep '^apps/' | cut -d '/' -f2 | sort -u)
+            BASE_SHA="${{ github.event.before }}"
           fi
+          echo "BASE_SHA=$BASE_SHA"
 
-          any_changes=false
-          if [ -n "$changed_apps" ]; then
-            any_changes=true
-          fi
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA ${{ github.sha }})
 
-          echo "changed_apps=$changed_apps" >> $GITHUB_OUTPUT
-          echo "any_changes=$any_changes" >> $GITHUB_OUTPUT
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
 
-          echo "Changed apps: $changed_apps"
-          echo "Any changes: $any_changes"
+          APPS_CHANGED=()
+          for file in $CHANGED_FILES; do
+            if [[ "$file" == apps/* ]]; then
+              app_name=$(echo $file | cut -d/ -f2)
+              APPS_CHANGED+=($app_name)
+            fi
+          done
 
-  build-and-deploy:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.any_changes == 'true'
+          # Remove duplicates
+          UNIQUE_APPS=($(echo "${APPS_CHANGED[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+          echo "Apps changed: ${UNIQUE_APPS[@]}"
+
+          echo "::set-output name=apps::${UNIQUE_APPS[*]}"
+
+  deploy-apps:
+    needs: detect-changed-apps
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [${{ needs.detect-changes.outputs.changed_apps }}]
+        app: [${{ needs.detect-changed-apps.outputs.changed_apps }}]
+
+    if: matrix.app != ''
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Ensure Coolify resource exists and is linked
+        env:
+          APP_NAME: ${{ matrix.app }}
+          COOLIFY_API_URL: ${{ env.COOLIFY_API_URL }}
+          COOLIFY_TOKEN: ${{ env.COOLIFY_TOKEN }}
+        run: |
+          # 1. Get app ID (assumes project already exists)
+          app_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/apps?name=$APP_NAME")
+          app_id=$(echo "$app_response" | jq -r '.data[0].id')
+
+          if [ -z "$app_id" ] || [ "$app_id" == "null" ]; then
+            echo "App ID not found for $APP_NAME. Please create the project manually."
+            exit 1
+          fi
+
+          # 2. Check if resource exists (resource name = app name)
+          resources_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/resources?name=$APP_NAME")
+          resource_id=$(echo "$resources_response" | jq -r '.data[0].id')
+
+          if [ -z "$resource_id" ] || [ "$resource_id" == "null" ]; then
+            echo "Resource not found, creating resource for $APP_NAME..."
+
+            create_resource_response=$(curl -s -X POST \
+              -H "Authorization: Bearer $COOLIFY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$APP_NAME\",\"type\":\"container\",\"config\":{\"dockerfilePath\":\"apps/$APP_NAME/Dockerfile\"}}" \
+              "$COOLIFY_API_URL/resources")
+
+            resource_id=$(echo "$create_resource_response" | jq -r '.data.id')
+            echo "Created resource with ID: $resource_id"
+          else
+            echo "Resource already exists with ID: $resource_id"
+          fi
+
+          # 3. Link resource to app if not linked
+          linked_resources=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/apps/$app_id/resources")
+          linked=$(echo "$linked_resources" | jq --arg rid "$resource_id" '.data | map(select(.id == $rid)) | length')
+
+          if [ "$linked" -eq 0 ]; then
+            echo "Linking resource $resource_id to app $app_id..."
+            curl -s -X POST \
+              -H "Authorization: Bearer $COOLIFY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"resourceId\": \"$resource_id\"}" \
+              "$COOLIFY_API_URL/apps/$app_id/resources"
+            echo "Resource linked."
+          else
+            echo "Resource already linked to app."
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Login to Docker registry
+      - name: Log in to Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ env.DOCKER_REGISTRY_USERNAME }}
           password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
 
-      - name: Build Docker image for ${{ matrix.app }}
-        working-directory: ./apps/${{ matrix.app }}
-        run: |
-          echo "Building Docker image for app: ${{ matrix.app }}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          # Create Dockerfile dynamically if it doesn't exist (optional, adapt if you have your own)
-          if [ ! -f Dockerfile ]; then
-            cat > Dockerfile <<EOF
-            FROM node:${{ env.NODE_VERSION }}-alpine AS builder
-            WORKDIR /app
-            COPY package*.json ./
-            RUN npm ci
-            COPY . .
-            RUN npm run build
-
-            FROM nginx:alpine
-            COPY --from=builder /app/build /usr/share/nginx/html
-            EXPOSE 80
-            CMD ["nginx", "-g", "daemon off;"]
-EOF
-          fi
-
-          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest .
-
-      - name: Push Docker image for ${{ matrix.app }}
-        run: |
-          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest
-
-      - name: Check if app exists in Coolify
-        id: check_app
-        run: |
-          echo "Checking if app '${{ matrix.app }}' exists in Coolify..."
-
-          response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" https://coolify.io/api/apps)
-          exists=$(echo "$response" | jq -r ".[] | select(.name==\"${{ matrix.app }}\") | .id")
-
-          if [ -z "$exists" ]; then
-            echo "App not found"
-            echo "exists=false" >> $GITHUB_OUTPUT
-          else
-            echo "App found: $exists"
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "app_id=$exists" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create app in Coolify if it does not exist
-        if: steps.check_app.outputs.exists == 'false'
-        id: create_app
-        run: |
-          echo "Creating app '${{ matrix.app }}' in Coolify..."
-
-          payload=$( jq -n \
-            --arg name "${{ matrix.app }}" \
-            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
-            '{
-              "name": $name,
-              "container": {
-                "image": $image,
-                "ports": [80]
-              }
-            }')
-
-          response=$(curl -s -X POST https://coolify.io/api/apps \
-            -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$payload")
-
-          new_id=$(echo "$response" | jq -r '.id')
-          echo "Created app with ID: $new_id"
-
-          echo "app_id=$new_id" >> $GITHUB_OUTPUT
-
-      - name: Deploy app in Coolify
-        run: |
-          APP_ID="${{ steps.check_app.outputs.exists == 'true' && steps.check_app.outputs.app_id || steps.create_app.outputs.app_id }}"
-          echo "Triggering deployment for app ID $APP_ID..."
-
-          update_payload=$( jq -n \
-            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
-            '{
-              "container": {
-                "image": $image
-              }
-            }')
-
-          curl -s -X PATCH "https://coolify.io/api/apps/$APP_ID" \
-            -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$update_payload"
-
-          echo "Deployment triggered."
-
-  notify:
-    needs: build-and-deploy
-    if: needs.detect-changes.outputs.any_changes == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| App | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-
-          for app in ${{ needs.detect-changes.outputs.changed_apps }}; do
-            echo "| $app | Success |" >> $GITHUB_STEP_SUMMARY
-          done
-name: Deploy Apps to Coolify
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps/**'
-  workflow_dispatch:
-    inputs:
-      deploy_environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
-      force_deploy:
-        description: 'Force deploy all apps'
-        required: false
-        default: false
-        type: boolean
-
-concurrency:
-  group: deploy-apps-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  DOCKER_REGISTRY: ghcr.io
-  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-  COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-  NODE_VERSION: 18
-
-jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      changed_apps: ${{ steps.set_outputs.outputs.changed_apps }}
-      any_changes: ${{ steps.set_outputs.outputs.any_changes }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          fetch-depth: 0
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Detect changed apps
-        id: set_outputs
-        run: |
-          echo "Detecting changed apps..."
-
-          # Get changed files between commits or all if first push or forced deploy
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
-            echo "Force deploy enabled: deploy all apps"
-            changed_apps=$(ls apps)
-          elif [[ "${{ github.event.before }}" == "" || "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
-            echo "First push detected: deploy all apps"
-            changed_apps=$(ls apps)
-          else
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-            echo "Changed files:"
-            echo "$CHANGED_FILES"
-
-            # Extract top-level directories inside apps/ that have changes
-            changed_apps=$(echo "$CHANGED_FILES" | grep '^apps/' | cut -d '/' -f2 | sort -u)
-          fi
-
-          any_changes=false
-          if [ -n "$changed_apps" ]; then
-            any_changes=true
-          fi
-
-          echo "changed_apps=$changed_apps" >> $GITHUB_OUTPUT
-          echo "any_changes=$any_changes" >> $GITHUB_OUTPUT
-
-          echo "Changed apps: $changed_apps"
-          echo "Any changes: $any_changes"
-
-  build-and-deploy:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.any_changes == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: [${{ needs.detect-changes.outputs.changed_apps }}]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          context: ./apps/${{ matrix.app }}
+          file: ./apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Login to Docker registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
-          password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
-
-      - name: Build Docker image for ${{ matrix.app }}
-        working-directory: ./apps/${{ matrix.app }}
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_API_URL: ${{ env.COOLIFY_API_URL }}
+          COOLIFY_TOKEN: ${{ env.COOLIFY_TOKEN }}
+          APP_NAME: ${{ matrix.app }}
         run: |
-          echo "Building Docker image for app: ${{ matrix.app }}"
+          echo "Triggering deployment for $APP_NAME"
+          # Get app ID first
+          app_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/apps?name=$APP_NAME")
+          app_id=$(echo "$app_response" | jq -r '.data[0].id')
 
-          # Create Dockerfile dynamically if it doesn't exist (optional, adapt if you have your own)
-          if [ ! -f Dockerfile ]; then
-            cat > Dockerfile <<EOF
-            FROM node:${{ env.NODE_VERSION }}-alpine AS builder
-            WORKDIR /app
-            COPY package*.json ./
-            RUN npm ci
-            COPY . .
-            RUN npm run build
-
-            FROM nginx:alpine
-            COPY --from=builder /app/build /usr/share/nginx/html
-            EXPOSE 80
-            CMD ["nginx", "-g", "daemon off;"]
-EOF
+          if [ "$app_id" == "null" ] || [ -z "$app_id" ]; then
+            echo "App ID not found, cannot trigger deployment."
+            exit 1
           fi
 
-          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest .
-
-      - name: Push Docker image for ${{ matrix.app }}
-        run: |
-          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest
-
-      - name: Check if app exists in Coolify
-        id: check_app
-        run: |
-          echo "Checking if app '${{ matrix.app }}' exists in Coolify..."
-
-          response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" https://coolify.io/api/apps)
-          exists=$(echo "$response" | jq -r ".[] | select(.name==\"${{ matrix.app }}\") | .id")
-
-          if [ -z "$exists" ]; then
-            echo "App not found"
-            echo "exists=false" >> $GITHUB_OUTPUT
-          else
-            echo "App found: $exists"
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "app_id=$exists" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create app in Coolify if it does not exist
-        if: steps.check_app.outputs.exists == 'false'
-        id: create_app
-        run: |
-          echo "Creating app '${{ matrix.app }}' in Coolify..."
-
-          payload=$( jq -n \
-            --arg name "${{ matrix.app }}" \
-            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
-            '{
-              "name": $name,
-              "container": {
-                "image": $image,
-                "ports": [80]
-              }
-            }')
-
-          response=$(curl -s -X POST https://coolify.io/api/apps \
-            -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$payload")
-
-          new_id=$(echo "$response" | jq -r '.id')
-          echo "Created app with ID: $new_id"
-
-          echo "app_id=$new_id" >> $GITHUB_OUTPUT
-
-      - name: Deploy app in Coolify
-        run: |
-          APP_ID="${{ steps.check_app.outputs.exists == 'true' && steps.check_app.outputs.app_id || steps.create_app.outputs.app_id }}"
-          echo "Triggering deployment for app ID $APP_ID..."
-
-          update_payload=$( jq -n \
-            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
-            '{
-              "container": {
-                "image": $image
-              }
-            }')
-
-          curl -s -X PATCH "https://coolify.io/api/apps/$APP_ID" \
-            -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$update_payload"
-
-          echo "Deployment triggered."
-
-  notify:
-    needs: build-and-deploy
-    if: needs.detect-changes.outputs.any_changes == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Summary
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| App | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-
-          for app in ${{ needs.detect-changes.outputs.changed_apps }}; do
-            echo "| $app | Success |" >> $GITHUB_STEP_SUMMARY
-          done
+          deploy_response=$(curl -s -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/apps/$app_id/deployments")
+          echo "Deploy response: $deploy_response"
