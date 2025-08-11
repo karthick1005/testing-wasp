@@ -3,7 +3,7 @@ name: Deploy Apps to Coolify
 on:
   push:
     branches:
-      - main
+      - apps-publish
     paths:
       - 'apps/**'
   workflow_dispatch:
@@ -57,23 +57,16 @@ jobs:
 
           echo "Apps changed: ${UNIQUE_APPS[@]}"
 
-          # Convert to JSON array format
-          if [ ${#UNIQUE_APPS[@]} -eq 0 ]; then
-            echo "::set-output name=apps::[]"
-          else
-            APPS_JSON=$(printf '"%s",' "${UNIQUE_APPS[@]}")
-            APPS_JSON="[${APPS_JSON%,}]"
-            echo "::set-output name=apps::$APPS_JSON"
-          fi
+          echo "::set-output name=apps::${UNIQUE_APPS[*]}"
 
   deploy-apps:
     needs: detect-changed-apps
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: ${{ fromJSON(needs.detect-changed-apps.outputs.changed_apps) }}
+        app: [${{ needs.detect-changed-apps.outputs.changed_apps }}]
 
-    if: needs.detect-changed-apps.outputs.changed_apps != '[]'
+    if: matrix.app != ''
 
     steps:
       - name: Checkout repo
