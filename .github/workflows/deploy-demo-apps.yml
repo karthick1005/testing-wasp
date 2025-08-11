@@ -95,7 +95,8 @@ jobs:
           # 3. Get application information  
           applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT")
           application_uuid=$(echo "$applications_response" | jq -r '.uuid // empty')
-          application_name=$(echo "$applications_response" | jq -r '.name // "production"')
+          application_name=$(echo "$applications_response" | jq -r '.name // empty')
+
 
           if [ -z "$application_uuid" ]; then
             echo "No environment found. Please create an environment in the project first."
