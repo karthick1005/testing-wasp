@@ -15,6 +15,15 @@ export interface AppConfig {
   authRequired?: boolean;
   category?: 'productivity' | 'ai' | 'business' | 'analytics' | 'tools' | 'other';
   isActive?: boolean;
+  remoteApp?: {
+    enabled: boolean;
+    configKey: string;
+    remoteUrl: string;
+    remoteName?: string;
+    exposedModule: string;
+    fallbackComponent?: string;
+    sharedDependencies?: Record<string, any>;
+  };
 }
 
 // Static app configuration - auto-generated from apps.json
@@ -24,7 +33,9 @@ export const APPS: AppConfig[] = ${JSON.stringify(apps, null, 2)};
 export function getActiveApps(): AppConfig[] {
   return APPS.filter(app => app.isActive !== false);
 }
-
+export function getAppById(id: string): AppConfig | undefined {
+  return APPS.find(app => app.id === id);
+}
 export function getAppByPath(path: string): AppConfig | undefined {
   return APPS.find(app => app.path === path);
 }`;
@@ -56,7 +67,7 @@ function updateMainWasp() {
       const pageName = toPascalCase(app.id) + 'Page';
       const componentPath = `@src/apps/${app.id}/${app.component}`;
       
-      let routeCode = `route ${routeName} { path: "${app.path}", to: ${pageName} }\n`;
+      let routeCode = `route ${routeName} { path: "${app.path}*", to: ${pageName} }\n`;
       routeCode += `page ${pageName} {\n`;
       
       if (app.authRequired) {
@@ -138,6 +149,9 @@ function addNewApp() {
     'Path (e.g., /todo): ',
     'Component name (e.g., TodoApp): ',
     'Requires login? (y/n): ',
+    "Remote Name: ",
+    'Remote url: ',
+    "Exposed module (e.g., ./TodoApp): ",
     'Category (tools/productivity/ai/business/analytics/other): '
   ];
 
@@ -158,8 +172,8 @@ function addNewApp() {
   }
 
   function createApp(answers) {
-    const [id, name, description, icon, appPath, component, requiresLogin, category] = answers;
-    
+    const [id, name, description, icon, appPath, component, requiresLogin, remotename, remoteurl, exposedModule, category] = answers;
+
     const newApp = {
       id: id,
       name: name,
@@ -169,7 +183,15 @@ function addNewApp() {
       component: component,
       authRequired: requiresLogin.toLowerCase() === 'y' || requiresLogin.toLowerCase() === 'yes',
       category: category || 'other',
-      isActive: true
+      isActive: true,
+      remoteApp: {
+        enabled: true,
+        configKey: id,
+        remoteName: remotename,
+        remoteUrl: remoteurl,
+        exposedModule: exposedModule,
+        fallbackComponent: "./DefaultComponent"
+      }
     };
 
     // Read existing apps
@@ -203,27 +225,27 @@ function addNewApp() {
       }
       
       // Create component file
-      const componentContent = `import React from 'react';
+      const componentContent =  `import React from 'react';
+import GenericRemoteApp from '../shared/GenericRemoteApp';
 
-export default function ${component}() {
+/**
+ * ${name}
+ * ${description}
+ * 
+ * Remote URL: ${newApp.remoteApp.remoteUrl}
+ * Exposed Module: ${newApp.remoteApp.exposedModule}
+ */
+const ${component}: React.FC = (props) => {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">${name}</h1>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600 mb-4">${description}</p>
-          
-          {/* Add your app content here */}
-          <div className="space-y-4">
-            <p>Welcome to ${name}! 🎉</p>
-            <p>Start building your app features here.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <GenericRemoteApp 
+      appId="${id}"
+      basePath="${appPath}"
+      {...props}
+    />
   );
-}`;
+};
+
+export default ${component};`;
 
       fs.writeFileSync(componentFilePath, componentContent, 'utf8');
       console.log(`📄 Created component: src/apps/${id}/${component}.tsx`);

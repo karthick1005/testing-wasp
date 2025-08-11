@@ -1,13 +1,21 @@
 [
   {
-    "id": "lazy-demo",
-    "name": "Lazy Loaded React App",
-    "description": "Module Federation demonstration with zero bundle impact",
-    "icon": "🚀",
-    "path": "/lazy-demo",
-    "component": "LazyLoadedReactApp",
+    "id": "Webpack",
+    "name": "Webpack",
+    "description": "sADSFGS",
+    "icon": "🎶",
+    "path": "/webpack",
+    "component": "Webpack",
     "authRequired": false,
     "category": "tools",
-    "isActive": true
+    "isActive": true,
+    "remoteApp": {
+      "enabled": true,
+      "configKey": "Webpack",
+      "remoteName": "demoReactApp",
+      "remoteUrl": "http://localhost:3002/remoteEntry.js",
+      "exposedModule": "./DemoAppForHostUrlSync",
+      "fallbackComponent": "./DefaultComponent"
+    }
   }
 ]

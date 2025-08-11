@@ -3,7 +3,7 @@ name: Deploy Apps to Coolify
 on:
   push:
     branches:
-      - apps-publish
+      - main
     paths:
       - 'apps/**'
   workflow_dispatch:

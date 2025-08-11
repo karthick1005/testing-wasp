@@ -9,20 +9,37 @@ export interface AppConfig {
   authRequired?: boolean;
   category?: 'productivity' | 'ai' | 'business' | 'analytics' | 'tools' | 'other';
   isActive?: boolean;
+   remoteApp?: {
+    enabled: boolean;
+    configKey?: string;
+    remoteUrl?: string;
+    remoteName?: string;
+    exposedModule?: string;
+    fallbackComponent?: string;
+    sharedDependencies?: Record<string, any>;
+  };
 }
 
 // Static app configuration - auto-generated from apps.json
 export const APPS: AppConfig[] = [
   {
-    "id": "lazy-demo",
-    "name": "Lazy Loaded React App",
-    "description": "Module Federation demonstration with zero bundle impact",
-    "icon": "🚀",
-    "path": "/lazy-demo",
-    "component": "LazyLoadedReactApp",
+    "id": "Webpack",
+    "name": "Webpack",
+    "description": "sADSFGS",
+    "icon": "🎶",
+    "path": "/webpack",
+    "component": "Webpack",
     "authRequired": false,
     "category": "tools",
-    "isActive": true
+    "isActive": true,
+    "remoteApp": {
+      "enabled": true,
+      "configKey": "Webpack",
+      "remoteName": "demoReactApp",
+      "remoteUrl": "http://localhost:3002/remoteEntry.js",
+      "exposedModule": "./DemoAppForHostUrlSync",
+      "fallbackComponent": "./DefaultComponent"
+    }
   }
 ];
 
@@ -30,7 +47,9 @@ export const APPS: AppConfig[] = [
 export function getActiveApps(): AppConfig[] {
   return APPS.filter(app => app.isActive !== false);
 }
-
+export function getAppById(id: string): AppConfig | undefined {
+  return APPS.find(app => app.id === id);
+}
 export function getAppByPath(path: string): AppConfig | undefined {
   return APPS.find(app => app.path === path);
 }

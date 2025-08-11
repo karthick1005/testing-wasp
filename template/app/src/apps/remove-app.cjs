@@ -15,6 +15,15 @@ export interface AppConfig {
   authRequired?: boolean;
   category?: 'productivity' | 'ai' | 'business' | 'analytics' | 'tools' | 'other';
   isActive?: boolean;
+    remoteApp?: {
+    enabled: boolean;
+    configKey: string;
+    remoteUrl: string;
+    remoteName?: string;
+    exposedModule: string;
+    fallbackComponent?: string;
+    sharedDependencies?: Record<string, any>;
+  };
 }
 
 // Static app configuration - auto-generated from apps.json
@@ -56,7 +65,7 @@ function updateMainWasp() {
       const pageName = toPascalCase(app.id) + 'Page';
       const componentPath = `@src/apps/${app.id}/${app.component}`;
       
-      let routeCode = `route ${routeName} { path: "${app.path}", to: ${pageName} }\n`;
+      let routeCode = `route ${routeName} { path: "${app.path}*", to: ${pageName} }\n`;
       routeCode += `page ${pageName} {\n`;
       
       if (app.authRequired) {

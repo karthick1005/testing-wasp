@@ -153,9 +153,9 @@ page AppsPage {
   component: import AppsPage from "@src/apps/AppsPage"
 }
 
-route LazyDemoRoute { path: "/lazy-demo/*", to: LazyDemoPage }
-page LazyDemoPage {
-  component: import LazyLoadedReactApp from "@src/apps/lazy-demo/LazyLoadedReactApp"
+route WebpackRoute { path: "/webpack*", to: WebpackPage }
+page WebpackPage {
+  component: import Webpack from "@src/apps/Webpack/Webpack"
 }
 
 //#endregion 
