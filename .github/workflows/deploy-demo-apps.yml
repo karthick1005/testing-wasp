@@ -114,8 +114,7 @@ jobs:
             -d "{
               \"project_uuid\": \"$project_uuid\",
               \"server_uuid\": \"$server_uuid\",
-              \"environment_name\": \"$application_name\",
-              \"environment_uuid\": \"$application_uuid\",
+              \"environment_name\": \"$DEPLOYMENT\",
               \"name\": \"$APP_NAME\",
               \"description\": \"Auto-generated application for $APP_NAME\",
               \"docker_registry_image_name\": \"ghcr.io/${{ github.repository_owner }}/$APP_NAME\",
