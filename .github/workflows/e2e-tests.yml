@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'template/app/**'
   pull_request:
     branches:
       - main
+    paths:
+      - 'template/app/**'
   workflow_dispatch:
 
 env:
