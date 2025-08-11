@@ -311,7 +311,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -321,6 +321,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Show built image tags
+        run: |
+          echo "Built and pushed the following tags:"
+          echo "${{ steps.meta.outputs.tags }}"
 
       - name: Trigger Coolify deployment
         env:
@@ -359,6 +364,7 @@ jobs:
           fi
 
           echo "Found application UUID: $app_uuid"
+
 
           # Trigger deployment using Coolify v1 API
           deploy_response=$(curl -s -X POST \
