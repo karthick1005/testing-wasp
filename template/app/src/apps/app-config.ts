@@ -36,7 +36,7 @@ export const APPS: AppConfig[] = [
       "enabled": true,
       "configKey": "Webpack",
       "remoteName": "demoReactApp",
-      "remoteUrl": "http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io/remoteEntry.js",
+      "remoteUrl": "https://demoapp1.duckdns.org/remoteEntry.js",
       "exposedModule": "./DemoAppForHostUrlSync",
       "fallbackComponent": "./DefaultComponent"
     }
