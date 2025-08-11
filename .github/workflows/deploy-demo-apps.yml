@@ -15,6 +15,8 @@ env:
   NODE_VERSION: "18"
   COOLIFY_API_URL: "http://34.136.254.179:8000/api"  # Change to your Coolify API URL
   COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  DEPLOYMENT: "production"
 
 jobs:
   detect-changed-apps:
@@ -84,53 +86,28 @@ jobs:
           APP_NAME: ${{ matrix.app }}
           COOLIFY_API_URL: ${{ env.COOLIFY_API_URL }}
           COOLIFY_TOKEN: ${{ env.COOLIFY_TOKEN }}
+          PROJECT_ID: ${{ env.PROJECT_ID }}
+          DEPLOYMENT: ${{ env.DEPLOYMENT }}
         run: |
-          # 1. Get required information for Coolify v1 API
-          echo "Getting project information..."
-          projects_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects")
-          project_uuid=$(echo "$projects_response" | jq -r '.data[0].uuid // empty')
-          
-          if [ -z "$project_uuid" ]; then
-            echo "No project found. Please create a project in Coolify first."
-            exit 1
-          fi
-          echo "Using project UUID: $project_uuid"
+          echo "Using project UUID: $PROJECT_ID"
 
-          # 2. Get server information
-          servers_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/servers")
-          server_uuid=$(echo "$servers_response" | jq -r '.data[0].uuid // empty')
-          
-          if [ -z "$server_uuid" ]; then
-            echo "No server found. Please configure a server in Coolify first."
-            exit 1
-          fi
-          echo "Using server UUID: $server_uuid"
+      
+          # 3. Get application information  
+          applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT")
+          application_uuid=$(echo "$applications_response" | jq -r '.uuid // empty')
+          application_name=$(echo "$applications_response" | jq -r '.name // "production"')
 
-          # 3. Get environment information  
-          environments_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/environments")
-          environment_uuid=$(echo "$environments_response" | jq -r '.data[0].uuid // empty')
-          environment_name=$(echo "$environments_response" | jq -r '.data[0].name // "production"')
-          
-          if [ -z "$environment_uuid" ]; then
+          if [ -z "$application_uuid" ]; then
             echo "No environment found. Please create an environment in the project first."
             exit 1
           fi
           echo "Using environment: $environment_name ($environment_uuid)"
 
-          # 4. Get destination information
-          destinations_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/servers/$server_uuid/destinations")
-          destination_uuid=$(echo "$destinations_response" | jq -r '.data[0].uuid // empty')
-          
-          if [ -z "$destination_uuid" ]; then
-            echo "No destination found. Please configure a destination on the server first."
-            exit 1
-          fi
-          echo "Using destination UUID: $destination_uuid"
 
           # 5. Check if application already exists
           echo "Checking for existing application $APP_NAME..."
-          applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/applications")
-          app_uuid=$(echo "$applications_response" | jq -r --arg name "$APP_NAME" '.data[] | select(.name == $name) | .uuid // empty')
+          app_uuid=$(echo "$applications_response" | jq -r --arg name "$APP_NAME" '.applications[] | select(.name == $name) | .uuid // empty')
+
 
           if [ -z "$app_uuid" ]; then
             echo "Application not found for $APP_NAME, creating new Docker image application..."
