@@ -3,11 +3,13 @@ name: "Deploy Demo Apps to Coolify"
 on:
   push:
     branches:
+      - main
       - apps-publish
     paths:
       - 'apps/**'
   pull_request:
     branches:
+      - main
       - apps-publish
     paths:
       - 'apps/**'
@@ -56,32 +58,52 @@ jobs:
       - name: Detect changes
         id: changes
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
+          echo "Event name: ${{ github.event_name }}"
+          echo "Force deploy: ${{ github.event.inputs.force_deploy }}"
+          echo "Before SHA: ${{ github.event.before }}"
+          echo "Current SHA: ${{ github.sha }}"
+          
+          # Force deployment for workflow_dispatch or if no before SHA (first push)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "🚀 Force deploying all apps (manual trigger or first push)"
             echo "demo-react-app=true" >> $GITHUB_OUTPUT
             echo "host-demo=true" >> $GITHUB_OUTPUT
             echo "routing-demo=true" >> $GITHUB_OUTPUT
             echo "any-changes=true" >> $GITHUB_OUTPUT
           else
+            echo "🔍 Checking for changes between ${{ github.event.before }} and ${{ github.sha }}"
+            
+            # Get list of changed files
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+            
             # Check for changes in specific app directories
-            if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^apps/demo-react-app/"; then
+            if echo "$CHANGED_FILES" | grep -q "^apps/demo-react-app/"; then
               echo "demo-react-app=true" >> $GITHUB_OUTPUT
+              echo "✅ Found changes in demo-react-app"
             else
               echo "demo-react-app=false" >> $GITHUB_OUTPUT
+              echo "❌ No changes in demo-react-app"
             fi
             
-            if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^apps/.*\.html$"; then
+            if echo "$CHANGED_FILES" | grep -q "^apps/.*\.html$"; then
               echo "host-demo=true" >> $GITHUB_OUTPUT
               echo "routing-demo=true" >> $GITHUB_OUTPUT
+              echo "✅ Found changes in HTML demo files"
             else
               echo "host-demo=false" >> $GITHUB_OUTPUT
               echo "routing-demo=false" >> $GITHUB_OUTPUT
+              echo "❌ No changes in HTML demo files"
             fi
             
             # Check if any demo app has changes
-            if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^apps/"; then
+            if echo "$CHANGED_FILES" | grep -q "^apps/"; then
               echo "any-changes=true" >> $GITHUB_OUTPUT
+              echo "✅ Found changes in apps directory"
             else
               echo "any-changes=false" >> $GITHUB_OUTPUT
+              echo "❌ No changes in apps directory"
             fi
           fi
 
@@ -124,24 +146,31 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./apps/demo-react-app
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies..."
+          npm ci
 
       - name: Build application
         working-directory: ./apps/demo-react-app
         env:
           NODE_ENV: production
-        run: npm run build
+        run: |
+          echo "🔨 Building application for production..."
+          npm run build
+          echo "📁 Listing build output..."
+          ls -la dist/ || ls -la build/ || echo "Build directory not found"
 
       - name: Create Dockerfile for demo-react-app
         working-directory: ./apps/demo-react-app
         run: |
+          echo "🐳 Creating Dockerfile..."
           cat > Dockerfile << 'EOF'
           # Multi-stage build for demo-react-app
           FROM node:18-alpine as builder
 
           WORKDIR /app
           COPY package*.json ./
-          RUN npm ci --only=production
+          RUN npm ci --only=production && npm cache clean --force
 
           COPY . .
           RUN npm run build
@@ -149,11 +178,15 @@ jobs:
           # Production stage with nginx
           FROM nginx:alpine
 
-          # Copy built files
-          COPY --from=builder /app/dist /usr/share/nginx/html
+          # Install curl for health checks
+          RUN apk add --no-cache curl
+
+          # Copy built files (check both dist and build directories)
+          COPY --from=builder /app/dist /usr/share/nginx/html 2>/dev/null || \
+          COPY --from=builder /app/build /usr/share/nginx/html
 
           # Copy custom nginx config for SPA with Module Federation
-          COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
+          COPY nginx.conf /etc/nginx/conf.d/default.conf
 
           # Health check
           HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

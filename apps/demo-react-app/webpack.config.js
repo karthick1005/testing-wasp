@@ -1,22 +1,32 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack/lib/container/ModuleFederationPlugin');
+const path = require('path');
 
-module.exports = {
-  mode: 'development',
-  entry: './src/index.js',
-  target: 'web',
-  devServer: {
-    port: 3002,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+module.exports = (env, argv) => {
+  const isProduction = argv.mode === 'production';
+  
+  return {
+    mode: isProduction ? 'production' : 'development',
+    entry: './src/index.js',
+    target: 'web',
+    output: {
+      path: path.resolve(__dirname, 'dist'),
+      filename: isProduction ? '[name].[contenthash].js' : '[name].js',
+      publicPath: 'auto',
+      clean: true
     },
-    hot: true,
-    client: {
-      overlay: false // Disable client-side overlay to prevent conflicts
-    }
-  },
+    devServer: {
+      port: 3002,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+      },
+      hot: true,
+      client: {
+        overlay: false // Disable client-side overlay to prevent conflicts
+      }
+    },
   module: {
     rules: [
       {
@@ -85,4 +95,5 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx']
   }
+  };
 };
