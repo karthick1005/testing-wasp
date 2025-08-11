@@ -13,6 +13,7 @@ const GenericRemoteApp: React.FC<GenericRemoteAppProps> = ({ appId, basePath, ..
   // Get app configuration
   const appConfig = appId ? getAppById(appId) : null;
   
+  
   if (!appConfig || !appConfig.remoteApp?.enabled) {
     return (
       <div style={{ 
