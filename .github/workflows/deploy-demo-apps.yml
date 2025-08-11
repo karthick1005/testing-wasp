@@ -89,6 +89,8 @@ jobs:
           PROJECT_ID: ${{ env.PROJECT_ID }}
           DEPLOYMENT: ${{ env.DEPLOYMENT }}
         run: |
+          project_uuid=${PROJECT_ID}
+
           echo "Using project UUID: $PROJECT_ID"
 
           echo "URL: $COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT"
