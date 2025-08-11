@@ -364,6 +364,6 @@ jobs:
           deploy_response=$(curl -s -X POST \
             -H "Authorization: Bearer $COOLIFY_TOKEN" \
             -H "Content-Type: application/json" \
-            "$COOLIFY_API_URL/v1/applications/$app_uuid/deploy")
+            "$COOLIFY_API_URL/v1/deploy?uuid=$app_uuid&force=false")
           
           echo "Deploy response: $deploy_response"
