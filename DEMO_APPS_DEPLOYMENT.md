@@ -11,6 +11,7 @@ This repository includes a comprehensive CI/CD pipeline for deploying demo appli
   - Webpack Module Federation
   - Multiple exposed components
   - CORS enabled for cross-origin loading
+  
   - Production-ready build configuration
 
 ### 2. Static Demo Apps (`apps/*.html`)
