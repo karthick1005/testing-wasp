@@ -168,7 +168,7 @@ const AppForHostUrlSync = ({ basePath = '/lazy-demo' }) => {
       position: 'relative',
       zIndex: 1,
       height: 'auto',
-      maxHeight: '80vh'
+      maxHeight: '100vh'
     }}>
       <Navigation basePath={basePath} />
       <div style={{ 

@@ -23,39 +23,6 @@ export const APPS: AppConfig[] = [
     "authRequired": false,
     "category": "tools",
     "isActive": true
-  },
-  {
-    "id": "my-first-app",
-    "name": "My First App",
-    "description": "A simple example app to get started",
-    "icon": "🚀",
-    "path": "/my-first-app",
-    "component": "MyFirstApp",
-    "authRequired": false,
-    "category": "tools",
-    "isActive": true
-  },
-  {
-    "id": "calculator",
-    "name": "Simple Calculator",
-    "description": "A basic calculator for everyday calculations",
-    "icon": "🧮",
-    "path": "/calculator",
-    "component": "Calculator",
-    "authRequired": true,
-    "category": "tools",
-    "isActive": true
-  },
-  {
-    "id": "test-weather",
-    "name": "Weather App",
-    "description": "A simple weather app",
-    "icon": "🌤️",
-    "path": "/weather",
-    "component": "WeatherApp",
-    "authRequired": true,
-    "category": "tools",
-    "isActive": true
   }
 ];
 
