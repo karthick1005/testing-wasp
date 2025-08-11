@@ -12,6 +12,7 @@
 - Uses `useLocation` and `Link` from OpenSaaS's React Router context
 - No nested Router components
 
+
 ### 2. Updated OpenSaaS Routing (main.wasp)
 ```wasp
 route LazyDemoRoute { path: "/lazy-demo", to: LazyDemoPage }
