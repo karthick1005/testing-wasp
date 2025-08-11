@@ -175,7 +175,7 @@ const DemoApp = () => {
       <div className="demo-header">
          
 
-        <h1>🚀 Heavy Demo React App hello</h1>
+        <h1>🚀 Heavy Demo React App hello hi</h1>
         <p className="demo-subtitle">
           Massive bundle size (~2.5MB) loaded with Module Federation - Zero impact on host!
         </p>
