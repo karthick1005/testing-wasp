@@ -1,16 +1,9 @@
-name: "Deploy Demo Apps to Coolify"
+name: Deploy Apps to Coolify
 
 on:
   push:
     branches:
       - main
-      - apps-publish
-    paths:
-      - 'apps/**'
-  pull_request:
-    branches:
-      - main
-      - apps-publish
     paths:
       - 'apps/**'
   workflow_dispatch:
@@ -29,487 +22,399 @@ on:
         default: false
         type: boolean
 
-# This will make sure that only one deployment is running at a time
 concurrency:
-  group: demo-apps-deployment-${{ github.ref }}
+  group: deploy-apps-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  DOCKER_REGISTRY: "ghcr.io"
-  DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
-  # This secret is provided by GitHub by default and is used to authenticate with the Container registry
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-  NODE_VERSION: "18"
+  DOCKER_REGISTRY: ghcr.io
+  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+  NODE_VERSION: 18
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      demo-react-app: ${{ steps.changes.outputs.demo-react-app }}
-      host-demo: ${{ steps.changes.outputs.host-demo }}
-      routing-demo: ${{ steps.changes.outputs.routing-demo }}
-      any-changes: ${{ steps.changes.outputs.any-changes }}
+      changed_apps: ${{ steps.set_outputs.outputs.changed_apps }}
+      any_changes: ${{ steps.set_outputs.outputs.any_changes }}
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Detect changes
-        id: changes
+      - name: Detect changed apps
+        id: set_outputs
         run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Force deploy: ${{ github.event.inputs.force_deploy }}"
-          echo "Before SHA: ${{ github.event.before }}"
-          echo "Current SHA: ${{ github.sha }}"
-          
-          # Force deployment for workflow_dispatch or if no before SHA (first push)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "🚀 Force deploying all apps (manual trigger or first push)"
-            echo "demo-react-app=true" >> $GITHUB_OUTPUT
-            echo "host-demo=true" >> $GITHUB_OUTPUT
-            echo "routing-demo=true" >> $GITHUB_OUTPUT
-            echo "any-changes=true" >> $GITHUB_OUTPUT
+          echo "Detecting changed apps..."
+
+          # Get changed files between commits or all if first push or forced deploy
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "Force deploy enabled: deploy all apps"
+            changed_apps=$(ls apps)
+          elif [[ "${{ github.event.before }}" == "" || "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+            echo "First push detected: deploy all apps"
+            changed_apps=$(ls apps)
           else
-            echo "🔍 Checking for changes between ${{ github.event.before }} and ${{ github.sha }}"
-            
-            # Get list of changed files
             CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
             echo "Changed files:"
             echo "$CHANGED_FILES"
-            
-            # Check for changes in specific app directories
-            if echo "$CHANGED_FILES" | grep -q "^apps/demo-react-app/"; then
-              echo "demo-react-app=true" >> $GITHUB_OUTPUT
-              echo "✅ Found changes in demo-react-app"
-            else
-              echo "demo-react-app=false" >> $GITHUB_OUTPUT
-              echo "❌ No changes in demo-react-app"
-            fi
-            
-            if echo "$CHANGED_FILES" | grep -q "^apps/.*\.html$"; then
-              echo "host-demo=true" >> $GITHUB_OUTPUT
-              echo "routing-demo=true" >> $GITHUB_OUTPUT
-              echo "✅ Found changes in HTML demo files"
-            else
-              echo "host-demo=false" >> $GITHUB_OUTPUT
-              echo "routing-demo=false" >> $GITHUB_OUTPUT
-              echo "❌ No changes in HTML demo files"
-            fi
-            
-            # Check if any demo app has changes
-            if echo "$CHANGED_FILES" | grep -q "^apps/"; then
-              echo "any-changes=true" >> $GITHUB_OUTPUT
-              echo "✅ Found changes in apps directory"
-            else
-              echo "any-changes=false" >> $GITHUB_OUTPUT
-              echo "❌ No changes in apps directory"
-            fi
+
+            # Extract top-level directories inside apps/ that have changes
+            changed_apps=$(echo "$CHANGED_FILES" | grep '^apps/' | cut -d '/' -f2 | sort -u)
           fi
 
-  build-demo-react-app:
+          any_changes=false
+          if [ -n "$changed_apps" ]; then
+            any_changes=true
+          fi
+
+          echo "changed_apps=$changed_apps" >> $GITHUB_OUTPUT
+          echo "any_changes=$any_changes" >> $GITHUB_OUTPUT
+
+          echo "Changed apps: $changed_apps"
+          echo "Any changes: $any_changes"
+
+  build-and-deploy:
     needs: detect-changes
-    if: needs.detect-changes.outputs.demo-react-app == 'true'
+    if: needs.detect-changes.outputs.any_changes == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    strategy:
+      matrix:
+        app: [${{ needs.detect-changes.outputs.changed_apps }}]
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: apps/demo-react-app/package-lock.json
 
-      - name: Log in to the Container registry
+      - name: Login to Docker registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ env.DOCKER_REGISTRY_USERNAME }}
           password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/demo-react-app
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Install dependencies
-        working-directory: ./apps/demo-react-app
+      - name: Build Docker image for ${{ matrix.app }}
+        working-directory: ./apps/${{ matrix.app }}
         run: |
-          echo "📦 Installing dependencies..."
-          npm ci
+          echo "Building Docker image for app: ${{ matrix.app }}"
 
-      - name: Build application
-        working-directory: ./apps/demo-react-app
-        env:
-          NODE_ENV: production
-        run: |
-          echo "🔨 Building application for production..."
-          npm run build
-          echo "📁 Listing build output..."
-          ls -la dist/ || ls -la build/ || echo "Build directory not found"
+          # Create Dockerfile dynamically if it doesn't exist (optional, adapt if you have your own)
+          if [ ! -f Dockerfile ]; then
+            cat > Dockerfile <<EOF
+            FROM node:${{ env.NODE_VERSION }}-alpine AS builder
+            WORKDIR /app
+            COPY package*.json ./
+            RUN npm ci
+            COPY . .
+            RUN npm run build
 
-      - name: Create Dockerfile for demo-react-app
-        working-directory: ./apps/demo-react-app
-        run: |
-          echo "🐳 Creating Dockerfile..."
-          cat > Dockerfile << 'EOF'
-          # Multi-stage build for demo-react-app
-          FROM node:18-alpine as builder
-
-          WORKDIR /app
-          COPY package*.json ./
-          RUN npm ci --only=production && npm cache clean --force
-
-          COPY . .
-          RUN npm run build
-
-          # Production stage with nginx
-          FROM nginx:alpine
-
-          # Install curl for health checks
-          RUN apk add --no-cache curl
-
-          # Copy built files from dist directory
-          COPY --from=builder /app/dist /usr/share/nginx/html
-
-          # Copy custom nginx config for SPA with Module Federation
-          COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-          # Health check
-          HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-            CMD curl -f http://localhost/ || exit 1
-
-          EXPOSE 80
-
-          CMD ["nginx", "-g", "daemon off;"]
-          EOF
-
-      - name: Create nginx config for demo-react-app
-        working-directory: ./apps/demo-react-app
-        run: |
-          cat > nginx.conf << 'EOF'
-          server {
-              listen 80;
-              server_name localhost;
-              root /usr/share/nginx/html;
-              index index.html;
-
-              # Enable gzip compression
-              gzip on;
-              gzip_vary on;
-              gzip_min_length 1024;
-              gzip_types
-                  text/plain
-                  text/css
-                  text/xml
-                  text/javascript
-                  application/javascript
-                  application/xml+rss
-                  application/json;
-
-              # Security headers
-              add_header X-Frame-Options "SAMEORIGIN" always;
-              add_header X-Content-Type-Options "nosniff" always;
-              add_header X-XSS-Protection "1; mode=block" always;
-
-              # CORS headers for Module Federation
-              add_header Access-Control-Allow-Origin "*" always;
-              add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;
-              add_header Access-Control-Allow-Headers "X-Requested-With, content-type, Authorization" always;
-
-              # Handle preflight requests
-              location / {
-                  if ($request_method = 'OPTIONS') {
-                      add_header Access-Control-Allow-Origin "*";
-                      add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS";
-                      add_header Access-Control-Allow-Headers "X-Requested-With, content-type, Authorization";
-                      add_header Access-Control-Max-Age 1728000;
-                      add_header Content-Type "text/plain charset=UTF-8";
-                      add_header Content-Length 0;
-                      return 204;
-                  }
-
-                  try_files $uri $uri/ /index.html;
-              }
-
-              # Cache static assets
-              location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-                  expires 1y;
-                  add_header Cache-Control "public, immutable";
-              }
-
-              # Special handling for remoteEntry.js (Module Federation)
-              location /remoteEntry.js {
-                  add_header Access-Control-Allow-Origin "*" always;
-                  add_header Cache-Control "no-cache, no-store, must-revalidate";
-                  expires -1;
-              }
-          }
-          EOF
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./apps/demo-react-app
-          file: ./apps/demo-react-app/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  build-static-demos:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.host-demo == 'true' || needs.detect-changes.outputs.routing-demo == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
-          password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata for static demos
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/demo-static-apps
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Create Dockerfile for static demos
-        working-directory: ./apps
-        run: |
-          cat > Dockerfile << 'EOF'
-          FROM nginx:alpine
-
-          # Copy static HTML files
-          COPY host-demo.html /usr/share/nginx/html/
-          COPY routing-demo.html /usr/share/nginx/html/
-
-          # Create index.html that lists available demos
-          RUN cat > /usr/share/nginx/html/index.html << 'HTML'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Demo Apps</title>
-              <style>
-                  body {
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                      max-width: 800px;
-                      margin: 0 auto;
-                      padding: 2rem;
-                      background: #f8fafc;
-                  }
-                  .card {
-                      background: white;
-                      border-radius: 8px;
-                      padding: 1.5rem;
-                      margin: 1rem 0;
-                      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                  }
-                  h1 { color: #1e293b; }
-                  h2 { color: #475569; }
-                  a { color: #3b82f6; text-decoration: none; }
-                  a:hover { text-decoration: underline; }
-                  .demo-link {
-                      display: inline-block;
-                      background: #3b82f6;
-                      color: white;
-                      padding: 0.5rem 1rem;
-                      border-radius: 4px;
-                      margin: 0.5rem 0.5rem 0.5rem 0;
-                  }
-                  .demo-link:hover {
-                      background: #2563eb;
-                      text-decoration: none;
-                  }
-              </style>
-          </head>
-          <body>
-              <h1>🚀 Demo Applications</h1>
-              <div class="card">
-                  <h2>Available Demos</h2>
-                  <p>Choose from the following demonstration applications:</p>
-                  
-                  <a href="/host-demo.html" class="demo-link">📡 Host Demo</a>
-                  <a href="/routing-demo.html" class="demo-link">🗺️ Routing Demo</a>
-                  
-                  <p style="margin-top: 2rem; color: #64748b; font-size: 0.9rem;">
-                      These demos showcase Module Federation and micro-frontend capabilities.
-                  </p>
-              </div>
-          </body>
-          </html>
-          HTML
-
-          # Copy nginx config
-          COPY nginx-static.conf /etc/nginx/conf.d/default.conf
-
-          EXPOSE 80
-
-          CMD ["nginx", "-g", "daemon off;"]
-          EOF
-
-      - name: Create nginx config for static demos
-        working-directory: ./apps
-        run: |
-          cat > nginx-static.conf << 'EOF'
-          server {
-              listen 80;
-              server_name localhost;
-              root /usr/share/nginx/html;
-              index index.html;
-
-              # Enable gzip compression
-              gzip on;
-              gzip_vary on;
-              gzip_min_length 1024;
-              gzip_types
-                  text/plain
-                  text/css
-                  text/xml
-                  text/javascript
-                  application/javascript
-                  application/xml+rss
-                  application/json;
-
-              # Security headers
-              add_header X-Frame-Options "SAMEORIGIN" always;
-              add_header X-Content-Type-Options "nosniff" always;
-              add_header X-XSS-Protection "1; mode=block" always;
-
-              # CORS headers for cross-origin requests
-              add_header Access-Control-Allow-Origin "*" always;
-              add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;
-              add_header Access-Control-Allow-Headers "X-Requested-With, content-type, Authorization" always;
-
-              location / {
-                  try_files $uri $uri/ =404;
-              }
-
-              # Cache static assets
-              location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-                  expires 1y;
-                  add_header Cache-Control "public, immutable";
-              }
-          }
-          EOF
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./apps
-          file: ./apps/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  deploy-to-coolify:
-    needs: [detect-changes, build-demo-react-app, build-static-demos]
-    if: always() && needs.detect-changes.outputs.any-changes == 'true' && (needs.build-demo-react-app.result == 'success' || needs.build-demo-react-app.result == 'skipped') && (needs.build-static-demos.result == 'success' || needs.build-static-demos.result == 'skipped')
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        app: 
-          - name: demo-react-app
-            condition: ${{ needs.detect-changes.outputs.demo-react-app == 'true' }}
-            webhook_secret: DEMO_REACT_APP_COOLIFY_WEBHOOK
-          - name: demo-static-apps
-            condition: ${{ needs.detect-changes.outputs.host-demo == 'true' || needs.detect-changes.outputs.routing-demo == 'true' }}
-            webhook_secret: DEMO_STATIC_APPS_COOLIFY_WEBHOOK
-
-    steps:
-      - name: Deploy ${{ matrix.app.name }} to Coolify
-        if: matrix.app.condition
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets[matrix.app.webhook_secret] }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          if [ -z "$COOLIFY_WEBHOOK" ]; then
-            echo "❌ Webhook URL not found for ${{ matrix.app.name }}"
-            echo "Please set the secret: ${{ matrix.app.webhook_secret }}"
-            exit 1
+            FROM nginx:alpine
+            COPY --from=builder /app/build /usr/share/nginx/html
+            EXPOSE 80
+            CMD ["nginx", "-g", "daemon off;"]
+EOF
           fi
-          
-          echo "🚀 Deploying ${{ matrix.app.name }} to Coolify..."
-          
-          # Trigger deployment webhook
-          response=$(curl -s -w "%{http_code}" -o /tmp/response.txt \
-            -X POST \
-            "$COOLIFY_WEBHOOK" \
-            --header "Authorization: Bearer $COOLIFY_TOKEN" \
-            --header "Content-Type: application/json" \
-            --data '{
-              "branch": "${{ github.ref_name }}",
-              "commit": "${{ github.sha }}",
-              "repository": "${{ github.repository }}"
-            }')
-          
-          http_code=${response: -3}
-          response_body=$(cat /tmp/response.txt)
-          
-          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-            echo "✅ Successfully triggered deployment for ${{ matrix.app.name }}"
-            echo "Response: $response_body"
+
+          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest .
+
+      - name: Push Docker image for ${{ matrix.app }}
+        run: |
+          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest
+
+      - name: Check if app exists in Coolify
+        id: check_app
+        run: |
+          echo "Checking if app '${{ matrix.app }}' exists in Coolify..."
+
+          response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" https://coolify.io/api/apps)
+          exists=$(echo "$response" | jq -r ".[] | select(.name==\"${{ matrix.app }}\") | .id")
+
+          if [ -z "$exists" ]; then
+            echo "App not found"
+            echo "exists=false" >> $GITHUB_OUTPUT
           else
-            echo "❌ Failed to trigger deployment for ${{ matrix.app.name }}"
-            echo "HTTP Code: $http_code"
-            echo "Response: $response_body"
-            exit 1
+            echo "App found: $exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "app_id=$exists" >> $GITHUB_OUTPUT
           fi
 
-  notify-deployment:
-    needs: [detect-changes, deploy-to-coolify]
-    if: always() && needs.detect-changes.outputs.any-changes == 'true'
-    runs-on: ubuntu-latest
+      - name: Create app in Coolify if it does not exist
+        if: steps.check_app.outputs.exists == 'false'
+        id: create_app
+        run: |
+          echo "Creating app '${{ matrix.app }}' in Coolify..."
 
+          payload=$( jq -n \
+            --arg name "${{ matrix.app }}" \
+            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
+            '{
+              "name": $name,
+              "container": {
+                "image": $image,
+                "ports": [80]
+              }
+            }')
+
+          response=$(curl -s -X POST https://coolify.io/api/apps \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+
+          new_id=$(echo "$response" | jq -r '.id')
+          echo "Created app with ID: $new_id"
+
+          echo "app_id=$new_id" >> $GITHUB_OUTPUT
+
+      - name: Deploy app in Coolify
+        run: |
+          APP_ID="${{ steps.check_app.outputs.exists == 'true' && steps.check_app.outputs.app_id || steps.create_app.outputs.app_id }}"
+          echo "Triggering deployment for app ID $APP_ID..."
+
+          update_payload=$( jq -n \
+            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
+            '{
+              "container": {
+                "image": $image
+              }
+            }')
+
+          curl -s -X PATCH "https://coolify.io/api/apps/$APP_ID" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$update_payload"
+
+          echo "Deployment triggered."
+
+  notify:
+    needs: build-and-deploy
+    if: needs.detect-changes.outputs.any_changes == 'true'
+    runs-on: ubuntu-latest
     steps:
       - name: Deployment Summary
         run: |
-          echo "## 🚀 Demo Apps Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| App | Status | Changes Detected |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|------------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Demo React App | ${{ needs.deploy-to-coolify.result }} | ${{ needs.detect-changes.outputs.demo-react-app }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Static Demos | ${{ needs.deploy-to-coolify.result }} | ${{ needs.detect-changes.outputs.host-demo }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| App | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          for app in ${{ needs.detect-changes.outputs.changed_apps }}; do
+            echo "| $app | Success |" >> $GITHUB_STEP_SUMMARY
+          done
+name: Deploy Apps to Coolify
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deploy all apps'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-apps-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+  NODE_VERSION: 18
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_apps: ${{ steps.set_outputs.outputs.changed_apps }}
+      any_changes: ${{ steps.set_outputs.outputs.any_changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed apps
+        id: set_outputs
+        run: |
+          echo "Detecting changed apps..."
+
+          # Get changed files between commits or all if first push or forced deploy
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "Force deploy enabled: deploy all apps"
+            changed_apps=$(ls apps)
+          elif [[ "${{ github.event.before }}" == "" || "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+            echo "First push detected: deploy all apps"
+            changed_apps=$(ls apps)
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+
+            # Extract top-level directories inside apps/ that have changes
+            changed_apps=$(echo "$CHANGED_FILES" | grep '^apps/' | cut -d '/' -f2 | sort -u)
+          fi
+
+          any_changes=false
+          if [ -n "$changed_apps" ]; then
+            any_changes=true
+          fi
+
+          echo "changed_apps=$changed_apps" >> $GITHUB_OUTPUT
+          echo "any_changes=$any_changes" >> $GITHUB_OUTPUT
+
+          echo "Changed apps: $changed_apps"
+          echo "Any changes: $any_changes"
+
+  build-and-deploy:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [${{ needs.detect-changes.outputs.changed_apps }}]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Login to Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Build Docker image for ${{ matrix.app }}
+        working-directory: ./apps/${{ matrix.app }}
+        run: |
+          echo "Building Docker image for app: ${{ matrix.app }}"
+
+          # Create Dockerfile dynamically if it doesn't exist (optional, adapt if you have your own)
+          if [ ! -f Dockerfile ]; then
+            cat > Dockerfile <<EOF
+            FROM node:${{ env.NODE_VERSION }}-alpine AS builder
+            WORKDIR /app
+            COPY package*.json ./
+            RUN npm ci
+            COPY . .
+            RUN npm run build
+
+            FROM nginx:alpine
+            COPY --from=builder /app/build /usr/share/nginx/html
+            EXPOSE 80
+            CMD ["nginx", "-g", "daemon off;"]
+EOF
+          fi
+
+          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest .
+
+      - name: Push Docker image for ${{ matrix.app }}
+        run: |
+          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest
+
+      - name: Check if app exists in Coolify
+        id: check_app
+        run: |
+          echo "Checking if app '${{ matrix.app }}' exists in Coolify..."
+
+          response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" https://coolify.io/api/apps)
+          exists=$(echo "$response" | jq -r ".[] | select(.name==\"${{ matrix.app }}\") | .id")
+
+          if [ -z "$exists" ]; then
+            echo "App not found"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          else
+            echo "App found: $exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "app_id=$exists" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create app in Coolify if it does not exist
+        if: steps.check_app.outputs.exists == 'false'
+        id: create_app
+        run: |
+          echo "Creating app '${{ matrix.app }}' in Coolify..."
+
+          payload=$( jq -n \
+            --arg name "${{ matrix.app }}" \
+            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
+            '{
+              "name": $name,
+              "container": {
+                "image": $image,
+                "ports": [80]
+              }
+            }')
+
+          response=$(curl -s -X POST https://coolify.io/api/apps \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+
+          new_id=$(echo "$response" | jq -r '.id')
+          echo "Created app with ID: $new_id"
+
+          echo "app_id=$new_id" >> $GITHUB_OUTPUT
+
+      - name: Deploy app in Coolify
+        run: |
+          APP_ID="${{ steps.check_app.outputs.exists == 'true' && steps.check_app.outputs.app_id || steps.create_app.outputs.app_id }}"
+          echo "Triggering deployment for app ID $APP_ID..."
+
+          update_payload=$( jq -n \
+            --arg image "${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY_USERNAME }}/${{ matrix.app }}:latest" \
+            '{
+              "container": {
+                "image": $image
+              }
+            }')
+
+          curl -s -X PATCH "https://coolify.io/api/apps/$APP_ID" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$update_payload"
+
+          echo "Deployment triggered."
+
+  notify:
+    needs: build-and-deploy
+    if: needs.detect-changes.outputs.any_changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Apps Information" >> $GITHUB_STEP_SUMMARY
-          echo "- **Demo React App**: Module Federation enabled React application" >> $GITHUB_STEP_SUMMARY
-          echo "- **Static Demos**: Host and routing demonstration HTML files" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 Setup Instructions" >> $GITHUB_STEP_SUMMARY
-          echo "To enable deployments, configure these secrets in your repository:" >> $GITHUB_STEP_SUMMARY
-          echo "- \`DEMO_REACT_APP_COOLIFY_WEBHOOK\`: Webhook URL for demo-react-app" >> $GITHUB_STEP_SUMMARY
-          echo "- \`DEMO_STATIC_APPS_COOLIFY_WEBHOOK\`: Webhook URL for static demos" >> $GITHUB_STEP_SUMMARY
-          echo "- \`COOLIFY_TOKEN\`: Authentication token for Coolify API" >> $GITHUB_STEP_SUMMARY
+          echo "| App | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          for app in ${{ needs.detect-changes.outputs.changed_apps }}; do
+            echo "| $app | Success |" >> $GITHUB_STEP_SUMMARY
+          done

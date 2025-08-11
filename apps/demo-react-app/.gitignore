@@ -5,7 +5,7 @@ node_modules/
 # To include specific dotenv files, use the `!` operator or adjust these rules.
 .env
 .env.*
-
+dist/
 # Don't ignore example dotenv files.
 !.env.example
 !.env.*.example

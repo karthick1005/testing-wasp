@@ -7,8 +7,8 @@ module.exports = (env, argv) => {
   
   return {
     mode: isProduction ? 'production' : 'development',
-    entry: './src/index.js',
-    target: 'web',
+    // entry: './src/index.js',
+    // target: 'web',
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: isProduction ? '[name].[contenthash].js' : '[name].js',
@@ -56,16 +56,16 @@ module.exports = (env, argv) => {
       name: 'demoReactApp',
       filename: 'remoteEntry.js',
       exposes: {
-        './DemoApp': './src/App.js',
+        // './DemoApp': './src/App.js',
         './EmbeddedDemoApp': './src/EmbeddedDemoApp.js',
-        './DemoAppWithRouter': './src/AppWithRouter.js',
-        './DemoAppWithBrowserRouter': './src/AppWithBrowserRouter.js',
-        './DemoAppForHost': './src/AppForHost.js',
-        './DemoAppForHostNoRouter': './src/AppForHostNoRouter.js',
-        './DemoAppForHostWithRoutes': './src/AppForHostWithRoutes.js',
+        // './DemoAppWithRouter': './src/AppWithRouter.js',
+        // './DemoAppWithBrowserRouter': './src/AppWithBrowserRouter.js',
+        // './DemoAppForHost': './src/AppForHost.js',
+        // './DemoAppForHostNoRouter': './src/AppForHostNoRouter.js',
+        // './DemoAppForHostWithRoutes': './src/AppForHostWithRoutes.js',
         './DemoAppForHostUrlSync': './src/AppForHostUrlSync.js',
-        './Standalone': './src/standalone.js',
-        './StandaloneWithRouter': './src/standaloneWithRouter.js'
+        // './Standalone': './src/standalone.js',
+        // './StandaloneWithRouter': './src/standaloneWithRouter.js'
       },
       shared: {
         react: {

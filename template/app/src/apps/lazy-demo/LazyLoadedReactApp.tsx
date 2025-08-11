@@ -138,41 +138,41 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
 
   // Get the component with better error handling
   console.log('Getting remote component...');
-  let factory;
-  try {
-    // Try the URL sync version first - works with host router and syncs URLs
-    factory = await window.demoReactApp.get('./DemoAppForHostUrlSync');
-    console.log('Successfully loaded DemoAppForHostUrlSync (URL synchronization)');
-  } catch (urlSyncError) {
-    console.error('Failed to get DemoAppForHostUrlSync, trying integrated routing:', urlSyncError);
-    try {
-      // Try the integrated routing version if URL sync fails
-      factory = await window.demoReactApp.get('./DemoAppForHostWithRoutes');
-      console.log('Successfully loaded DemoAppForHostWithRoutes (integrated routing)');
-    } catch (routingError) {
-      console.error('Failed to get DemoAppForHostWithRoutes, trying no-router version:', routingError);
-      try {
-        // Try the router-free version if integrated routing fails
-        factory = await window.demoReactApp.get('./DemoAppForHostNoRouter');
-        console.log('Successfully loaded DemoAppForHostNoRouter (no router conflicts)');
-      } catch (noRouterError) {
-        console.error('Failed to get DemoAppForHostNoRouter, trying DemoAppForHost:', noRouterError);
-        try {
-          factory = await window.demoReactApp.get('./DemoAppForHost');
-          console.log('Successfully loaded DemoAppForHost (with router)');
-        } catch (getError) {
-          console.error('Failed to get DemoAppForHost, trying DemoApp:', getError);
-          try {
-            factory = await window.demoReactApp.get('./DemoApp');
-            console.log('Successfully loaded DemoApp (fallback)');
-          } catch (fallbackError) {
-            console.error('Failed to get any component:', fallbackError);
-            throw new Error('Failed to get any exposed component from remote app');
-          }
-        }
-      }
-    }
-  }
+  let factory=await window.demoReactApp.get('./DemoAppForHostUrlSync');;
+  // try {
+  //   // Try the URL sync version first - works with host router and syncs URLs
+  //   factory = await window.demoReactApp.get('./DemoAppForHostUrlSync');
+  //   console.log('Successfully loaded DemoAppForHostUrlSync (URL synchronization)');
+  // } catch (urlSyncError) {
+  //   console.error('Failed to get DemoAppForHostUrlSync, trying integrated routing:', urlSyncError);
+  //   try {
+  //     // Try the integrated routing version if URL sync fails
+  //     factory = await window.demoReactApp.get('./DemoAppForHostWithRoutes');
+  //     console.log('Successfully loaded DemoAppForHostWithRoutes (integrated routing)');
+  //   } catch (routingError) {
+  //     console.error('Failed to get DemoAppForHostWithRoutes, trying no-router version:', routingError);
+  //     try {
+  //       // Try the router-free version if integrated routing fails
+  //       factory = await window.demoReactApp.get('./DemoAppForHostNoRouter');
+  //       console.log('Successfully loaded DemoAppForHostNoRouter (no router conflicts)');
+  //     } catch (noRouterError) {
+  //       console.error('Failed to get DemoAppForHostNoRouter, trying DemoAppForHost:', noRouterError);
+  //       try {
+  //         factory = await window.demoReactApp.get('./DemoAppForHost');
+  //         console.log('Successfully loaded DemoAppForHost (with router)');
+  //       } catch (getError) {
+  //         console.error('Failed to get DemoAppForHost, trying DemoApp:', getError);
+  //         try {
+  //           factory = await window.demoReactApp.get('./DemoApp');
+  //           console.log('Successfully loaded DemoApp (fallback)');
+  //         } catch (fallbackError) {
+  //           console.error('Failed to get any component:', fallbackError);
+  //           throw new Error('Failed to get any exposed component from remote app');
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
   
   const module = await factory();
   
