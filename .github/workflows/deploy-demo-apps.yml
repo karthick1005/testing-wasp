@@ -103,9 +103,34 @@ jobs:
           application_name=$(echo "$applications_response" | jq -r '.name // empty')
 
 
-          if [ -z "$application_uuid" ]; then
-            echo "No environment found. Please create an environment in the project first."
-            exit 1
+          if [ -z "$app_uuid" ]; then
+            echo "Application not found for $APP_NAME, creating new Docker image application..."
+
+            create_app_response=$(curl -s -X POST \
+              -H "Authorization: Bearer $COOLIFY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"project_uuid\": \"$project_uuid\",
+                \"name\": \"$APP_NAME\",
+                \"description\": \"Auto-generated application for $APP_NAME\",
+                \"docker_registry_image_name\": \"ghcr.io/${{ github.repository_owner }}/$APP_NAME\",
+                \"docker_registry_image_tag\": \"latest\",
+                \"ports_exposes\": \"3000\",
+                \"instant_deploy\": false
+              }" \
+              "$COOLIFY_API_URL/v1/applications/dockerimage")
+
+            app_uuid=$(echo "$create_app_response" | jq -r '.uuid // .data.uuid // empty')
+
+            if [ -z "$app_uuid" ]; then
+              echo "Failed to create application for $APP_NAME"
+              echo "Create application response: $create_app_response"
+              exit 1
+            fi
+
+            echo "Created new application with UUID: $app_uuid"
+          else
+            echo "Found existing application with UUID: $app_uuid"
           fi
           echo "Using environment: $environment_name ($environment_uuid)"
 
