@@ -91,9 +91,10 @@ jobs:
         run: |
           echo "Using project UUID: $PROJECT_ID"
 
-      
+          echo "URL: $COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT"
+          echo "Token: $COOLIFY_TOKEN"
           # 3. Get application information  
-          applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT")
+          applications_response=$(curl -v -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/$DEPLOYMENT")
           echo "Full response from Coolify API:"
           echo "$applications_response"
           application_uuid=$(echo "$applications_response" | jq -r '.uuid // empty')
