@@ -57,16 +57,23 @@ jobs:
 
           echo "Apps changed: ${UNIQUE_APPS[@]}"
 
-          echo "::set-output name=apps::${UNIQUE_APPS[*]}"
+          # Convert to JSON array format
+          if [ ${#UNIQUE_APPS[@]} -eq 0 ]; then
+            echo "::set-output name=apps::[]"
+          else
+            APPS_JSON=$(printf '"%s",' "${UNIQUE_APPS[@]}")
+            APPS_JSON="[${APPS_JSON%,}]"
+            echo "::set-output name=apps::$APPS_JSON"
+          fi
 
   deploy-apps:
     needs: detect-changed-apps
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [${{ needs.detect-changed-apps.outputs.changed_apps }}]
+        app: ${{ fromJSON(needs.detect-changed-apps.outputs.changed_apps) }}
 
-    if: matrix.app != ''
+    if: needs.detect-changed-apps.outputs.changed_apps != '[]'
 
     steps:
       - name: Checkout repo
