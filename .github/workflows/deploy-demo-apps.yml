@@ -71,6 +71,9 @@ jobs:
   deploy-apps:
     needs: detect-changed-apps
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         app: ${{ fromJSON(needs.detect-changed-apps.outputs.changed_apps) }}
@@ -357,26 +360,28 @@ jobs:
           COOLIFY_API_URL: ${{ env.COOLIFY_API_URL }}
           COOLIFY_TOKEN: ${{ env.COOLIFY_TOKEN }}
           APP_NAME: ${{ matrix.app }}
+          PROJECT_ID: ${{ env.PROJECT_ID }}
         run: |
           echo "Triggering deployment for $APP_NAME"
           
-          # Get project UUID
-          projects_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects")
-          project_uuid=$(echo "$projects_response" | jq -r '.data[0].uuid // empty')
+          # Use the project UUID from environment
+          project_uuid=$PROJECT_ID
           
-          if [ -z "$project_uuid" ]; then
-            echo "Project UUID not found, cannot trigger deployment."
-            exit 1
-          fi
+          # Get applications in the project environment
+          applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/production")
+          echo "Applications response: $applications_response"
           
-          # Get application UUID
-          applications_response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_API_URL/v1/projects/$project_uuid/applications")
-          app_uuid=$(echo "$applications_response" | jq -r --arg name "$APP_NAME" '.data[] | select(.name == $name) | .uuid // empty')
+          # Find the application by name
+          app_uuid=$(echo "$applications_response" | jq -r --arg name "$APP_NAME" '.applications[]? | select(.name == $name) | .uuid // empty')
 
           if [ -z "$app_uuid" ]; then
             echo "Application UUID not found for $APP_NAME, cannot trigger deployment."
+            echo "Available applications:"
+            echo "$applications_response" | jq -r '.applications[]?.name // "No applications found"'
             exit 1
           fi
+
+          echo "Found application UUID: $app_uuid"
 
           # Trigger deployment using Coolify v1 API
           deploy_response=$(curl -s -X POST \
