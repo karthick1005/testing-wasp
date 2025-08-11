@@ -88,8 +88,10 @@ jobs:
           COOLIFY_TOKEN: ${{ env.COOLIFY_TOKEN }}
           PROJECT_ID: ${{ env.PROJECT_ID }}
           DEPLOYMENT: ${{ env.DEPLOYMENT }}
+          SERVER_ID: ${{ secrets.SERVER_ID }}
         run: |
           project_uuid=${PROJECT_ID}
+          server_uuid=${SERVER_ID}
 
           echo "Using project UUID: $PROJECT_ID"
 
@@ -107,18 +109,22 @@ jobs:
             echo "Application not found for $APP_NAME, creating new Docker image application..."
 
             create_app_response=$(curl -s -X POST \
-              -H "Authorization: Bearer $COOLIFY_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"project_uuid\": \"$project_uuid\",
-                \"name\": \"$APP_NAME\",
-                \"description\": \"Auto-generated application for $APP_NAME\",
-                \"docker_registry_image_name\": \"ghcr.io/${{ github.repository_owner }}/$APP_NAME\",
-                \"docker_registry_image_tag\": \"latest\",
-                \"ports_exposes\": \"3000\",
-                \"instant_deploy\": false
-              }" \
-              "$COOLIFY_API_URL/v1/applications/dockerimage")
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"project_uuid\": \"$project_uuid\",
+              \"server_uuid\": \"$server_uuid\",
+              \"environment_name\": \"$application_name\",
+              \"environment_uuid\": \"$application_uuid\",
+              \"name\": \"$APP_NAME\",
+              \"description\": \"Auto-generated application for $APP_NAME\",
+              \"docker_registry_image_name\": \"ghcr.io/${{ github.repository_owner }}/$APP_NAME\",
+              \"docker_registry_image_tag\": \"latest\",
+              \"ports_exposes\": \"3000\",
+              \"instant_deploy\": false
+            }" \
+            "$COOLIFY_API_URL/v1/applications/dockerimage")
+
 
             app_uuid=$(echo "$create_app_response" | jq -r '.uuid // .data.uuid // empty')
 
