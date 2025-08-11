@@ -60,7 +60,7 @@ const loadViaModuleFederation = async (): Promise<React.ComponentType> => {
   // Create and load new script
   const script = document.createElement('script');
   script.id = scriptId;
-  script.src = 'http://localhost:3002/remoteEntry.js';
+  script.src = 'http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io/remoteEntry.js';
   script.type = 'text/javascript';
   
   console.log('Loading remote entry script...');
@@ -296,7 +296,7 @@ export default function LazyLoadedReactApp() {
   // Check if remote app is available
   const checkRemoteAvailability = async () => {
     try {
-      const response = await fetch('http://localhost:3002/remoteEntry.js', { method: 'HEAD' });
+      const response = await fetch('http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io/remoteEntry.js', { method: 'HEAD' });
       setRemoteAvailable(response.ok);
       return response.ok;
     } catch (error) {
@@ -338,7 +338,7 @@ export default function LazyLoadedReactApp() {
     setLoadStatus({ status: 'idle' });
     
     // Remove the remote script to force re-loading next time
-    const script = document.querySelector('script[src="http://localhost:3002/remoteEntry.js"]');
+    const script = document.querySelector('script[src="http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io/remoteEntry.js"]');
     if (script) {
       script.remove();
     }
@@ -352,7 +352,7 @@ export default function LazyLoadedReactApp() {
   };
 
   const openInNewTab = () => {
-    window.open('http://localhost:3002', '_blank');
+    window.open('http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io', '_blank');
   };
 
   // Check availability on mount and auto-load the remote app
@@ -498,7 +498,7 @@ export default function LazyLoadedReactApp() {
                   cd apps/demo-react-app && npm start
                 </code>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  The app will be available at http://localhost:3002
+                  The app will be available at http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io
                 </p>
               </div>
             </div>
