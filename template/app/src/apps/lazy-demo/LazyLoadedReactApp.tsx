@@ -12,7 +12,7 @@ declare global {
 const loadRemoteComponent = async (): Promise<React.ComponentType> => {
   // Load the remote entry script
   const script = document.createElement('script');
-  script.src = 'http://i4ww0c4koccw0s8w4gkw8ock.34.136.254.179.sslip.io/remoteEntry.js';
+  script.src = 'http://localhost:3002/remoteEntry.js';
   script.type = 'text/javascript';
   
   await new Promise<void>((resolve, reject) => {
@@ -73,7 +73,7 @@ const LazyRemoteComponent = React.lazy(async () => {
   const Component = await loadRemoteComponent();
   
   const Wrapper = (props: any) => (
-    <div style={{ width: '100%', height: '100vh' }}>
+    <div style={{ width: '100%', height: '100%' }}>
       <Component basePath="/lazy-demo" {...props} />
     </div>
   );
@@ -95,7 +95,7 @@ const LoadingFallback = () => (
 
 const LazyLoadedReactApp = () => {
   return (
-    <div style={{ width: '100%',height:"100vh",background:"red" }}>
+    <div style={{ width: '100%',height:"85vh",background:"red" }}>
       <Suspense fallback={<LoadingFallback />}>
         <LazyRemoteComponent />
       </Suspense>
