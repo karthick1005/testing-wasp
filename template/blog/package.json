@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "tinacms dev -c \"astro dev\"",
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
@@ -17,6 +17,11 @@
     "astro": "^4.16.15",
     "sharp": "^0.32.5",
     "starlight-blog": "^0.15.0",
+    "tinacms": "^2.8.2",
     "typescript": "^5.4.5"
+  },
+  "devDependencies": {
+    "@tinacms/cli": "^1.10.2",
+    "@types/node": "^24.3.0"
   }
 }
